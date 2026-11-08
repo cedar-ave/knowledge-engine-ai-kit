@@ -16,15 +16,15 @@ const SAMPLES = path.resolve('samples');
 const vectors = [
   ['https://youtu.be/xeiU5UTffsw?si=iilVuhe-wzfZ9fol', 'yt:xeiU5UTffsw'],
   ['https://youtu.be/-1n2DEkN6Mk?si=abc', 'yt:-1n2DEkN6Mk'],
-  ['https://www.linkedin.com/feed/update/urn:li:activity:7521597438726565888?updateEntityUrn=x', 'li:7521597438726565888'],
-  ['https://writethedocs.slack.com/archives/C6D77HJ4F/p1790888301414749?thread_ts=1790883092.003079&cid=C6D77HJ4F', 'slack:writethedocs:C6D77HJ4F:1790883092.003079'],
+  ['https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000001?updateEntityUrn=x', 'li:7000000000000000001'],
+  ['https://example-workspace.slack.com/archives/C0000000000/p1790888301414749?thread_ts=1790883092.003079&cid=C0000000000', 'slack:example-workspace:C0000000000:1790883092.003079'],
   ['https://www.oreilly.com/library/view/the-context-engineering/0642572260705/', 'web:oreilly.com/library/view/the-context-engineering/0642572260705'],
-  ['https://www.youtube.com/@writethedocspodcastmeetups7997/videos', 'web:youtube.com/@writethedocspodcastmeetups7997/videos'],
+  ['https://www.youtube.com/@examplechannel0000/videos', 'web:youtube.com/@examplechannel0000/videos'],
 ];
 for (const [input, id] of vectors) test(`id ${id}`, () => assert.equal(itemId(input), id));
 
 test('id: slack parent ts from permalink, tracking params dropped, identifying params sorted', () => {
-  assert.equal(itemId('https://acme.slack.com/archives/C1ABC/p1790883092003079'), 'slack:acme:C1ABC:1790883092.003079');
+  assert.equal(itemId('https://example-workspace.slack.com/archives/C0000000000/p1790883092003079'), 'slack:example-workspace:C0000000000:1790883092.003079');
   assert.equal(itemId('https://Example.com/a/b/?utm_source=x&z=2&a=1#frag'), 'web:example.com/a/b?a=1&z=2');
 });
 

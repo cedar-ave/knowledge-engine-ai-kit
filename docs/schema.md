@@ -31,13 +31,13 @@ Validation stack for `items/`: `google:okf:0.1`, `manni:core:1.0.0`, `manni:stru
 | `captured-text-sha256` | kit | Checked by `kb check-captured-text` |
 | `capture` | kit | `verbatim`, `full-text`, `summary-only`, `extraction-failed`, `bookmark` |
 | `part-of` | Dublin Core `dcterms:isPartOf` | `id` of the source item |
-| `meta-provenance` | manni ai-context | manni's shape: `generated-by`, `fields` (JSON Pointers), `confidence`. It has no `reviewed` flag; manni expects reviewed entries to be deleted |
-| `meta-reviewed` | kit | Boolean review state. Added because `meta-provenance` cannot hold `reviewed: true/false` |
+| `meta-provenance` | manni ai-context | manni's shape: `generated-by`, `fields` (JSON Pointers), `confidence`. Stored outside the page in `items.metadata.yaml`, declared by `externalMetadata` in `manni.config.yaml`. Deleting an entry marks it reviewed |
+| `last-reviewed` | manni stewardship (key and pattern) | Date a human last reviewed the metadata. The kit schema repeats manni's pattern instead of adding `manni:stewardship` to the stack, because that schema wants `authors` outside the page |
 | `notion-url` | kit | Migration trace. Remove after Phase 12 |
 
-## Known manni behaviour
+## External metadata
 
-manni's ai-context schema prefers `meta-provenance` outside the page (`x-manni-location: external`). Validation passes, with a warning, when it is stored in frontmatter.
+manni's ai-context schema marks `meta-provenance` as `x-manni-location: external`. The collection config lists `externalMetadata: [{file: ./items.metadata.yaml, keys: [meta-provenance]}]`, and the manifest maps each item path to its entries. `manni meta relocate` moves values there. Validation runs with no warnings.
 
 ## Other schemas
 

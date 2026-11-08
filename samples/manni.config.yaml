@@ -1,6 +1,9 @@
 collections:
   - name: items
     paths: ["items/**/*.md"]
+    externalMetadata:
+      - file: ./items.metadata.yaml
+        keys: [meta-provenance]
   - name: concepts
     paths: ["concepts/**/*.md"]
     exclude: ["concepts/CHANGELOG.md"]

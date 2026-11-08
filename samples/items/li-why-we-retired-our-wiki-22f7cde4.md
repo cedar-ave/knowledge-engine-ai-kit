@@ -8,7 +8,7 @@ id: li:7000000000000000002
 type: linkedin-article
 title: Why We Retired Our Wiki
 description: An article describing the move from a wiki to docs-as-code.
-resource: https://linkedin.example/pulse/why-we-retired-our-wiki
+resource: https://www.linkedin.com/pulse/why-we-retired-our-wiki
 capture: verbatim
 authors:
   - ada-sample
@@ -37,4 +37,4 @@ None mentioned
 We moved every page into Git and added review on pull requests.
 
 ## Source
-`https://linkedin.example/pulse/why-we-retired-our-wiki`
+`https://www.linkedin.com/pulse/why-we-retired-our-wiki`

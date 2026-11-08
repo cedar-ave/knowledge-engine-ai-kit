@@ -1,19 +1,34 @@
-// Fails if any file under samples/ contains a real Slack or LinkedIn feed URL (0.3: no real content in the public kit).
+// Fails if samples/ or test/ contain a Slack workspace or LinkedIn activity ID that is not on the fictional allowlist (0.3).
 import fs from 'node:fs';
 import path from 'node:path';
 
-const BAD = /slack\.com|linkedin\.com\/feed/i;
-const hits = [];
+const SLACK_WORKSPACES = new Set(['example-workspace']);
+const LINKEDIN_IDS = new Set(['7000000000000000001', '7000000000000000002']);
+
+const checks = [
+  // https://<workspace>.slack.com/...
+  [/\b([a-z0-9-]+)\.slack\.com/gi, (m) => SLACK_WORKSPACES.has(m[1].toLowerCase()), 'Slack workspace'],
+  // slack:<workspace>:<channel>:<ts> item IDs
+  [/\bslack:([a-z0-9-]+):/gi, (m) => SLACK_WORKSPACES.has(m[1].toLowerCase()), 'Slack workspace (item id)'],
+  // LinkedIn activity / share / ugcPost IDs, and li:<id> item IDs
+  [/(?:activity[:-]|share[:-]|ugcPost[:-]|\bli:)(\d{19})/g, (m) => LINKEDIN_IDS.has(m[1]), 'LinkedIn ID'],
+];
+
+const problems = [];
 const walk = (d) => {
   for (const e of fs.readdirSync(d, { withFileTypes: true })) {
     const p = path.join(d, e.name);
-    if (e.isDirectory()) walk(p);
-    else if (BAD.test(fs.readFileSync(p, 'utf8'))) hits.push(p);
+    if (e.isDirectory()) { if (e.name !== 'node_modules') walk(p); continue; }
+    const text = fs.readFileSync(p, 'utf8');
+    for (const [re, ok, label] of checks) {
+      for (const m of text.matchAll(re)) if (!ok(m)) problems.push(`${p}: ${label} "${m[1]}" is not on the allowlist`);
+    }
   }
 };
-walk('samples');
-if (hits.length) {
-  console.error(`Leak check failed. Real Slack/LinkedIn URLs found in:\n${hits.map((h) => `  ${h}`).join('\n')}`);
+for (const dir of ['samples', 'test']) if (fs.existsSync(dir)) walk(dir);
+
+if (problems.length) {
+  console.error(`Leak check failed:\n${[...new Set(problems)].map((p) => `  ${p}`).join('\n')}`);
   process.exit(1);
 }
 console.log('leak check: ok');

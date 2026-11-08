@@ -4,14 +4,14 @@ concepts:
   - Documentation CI
 knowledge-types:
   - best-practice
-id: slack:acme:C0SAMPLE1:1790883092.003079
+id: slack:example-workspace:C0000000000:1790883092.003079
 type: slack-thread
 title: Thread on Docs Linting Rules
 title-devised: true
 description: A discussion about which lint rules to enforce.
-resource: https://acme-sample.example/archives/C0SAMPLE1/p1790883092003079
+resource: https://example-workspace.slack.com/archives/C0000000000/p1790883092003079
 capture: verbatim
-slack-workspace: acme
+slack-workspace: example-workspace
 slack-channel: "#docs-quality"
 published: 2026-10-01
 genre:
@@ -42,4 +42,4 @@ None mentioned
 [2026-10-01 09:05] Ada: Only on errors, otherwise people ignore it.
 
 ## Source
-`https://acme-sample.example/archives/C0SAMPLE1/p1790883092003079`
+`https://example-workspace.slack.com/archives/C0000000000/p1790883092003079`

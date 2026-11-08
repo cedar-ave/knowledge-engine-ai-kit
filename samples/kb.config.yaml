@@ -1,8 +1,8 @@
 owner: Sample Owner
 slack-workspaces:
-  - subdomain: acme
-    team-id: T0SAMPLE1
-    name: Acme Sample
+  - subdomain: example-workspace
+    team-id: T0000000000
+    name: Example Workspace
 timezone: UTC
 takeaway-lens: >
   Fictional lens for the sample dataset.

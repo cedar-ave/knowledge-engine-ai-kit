@@ -69,7 +69,7 @@ const item = {
     'captured-text-sha256': { type: 'string', pattern: '^[0-9a-f]{64}$' },
     capture: { enum: ['verbatim', 'full-text', 'summary-only', 'extraction-failed', 'bookmark'] },
     'part-of': str,
-    'meta-reviewed': { type: 'boolean', description: 'Kit key. manni meta-provenance entries have no reviewed flag (reviewed entries are deleted), so the review state is tracked here.' },
+    'last-reviewed': { type: 'string', pattern: "^[0-9]{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01])(T([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9]))?)?)?$", description: 'Same key and pattern as manni:stewardship:1.2.0 last-reviewed. Date a human last reviewed the metadata.' },
     'notion-url': { type: 'string', format: 'uri' },
   },
   allOf: [

@@ -9,7 +9,7 @@ type: linkedin-post
 title: A Note on Doc Debt
 title-devised: true
 description: A short post arguing that doc debt compounds like code debt.
-resource: https://linkedin.example/feed/update/urn:li:activity:7000000000000000001
+resource: https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000001
 capture: verbatim
 authors:
   - ada-sample
@@ -42,4 +42,4 @@ None mentioned
 Doc debt compounds. Every skipped update makes the next one harder.
 
 ## Source
-`https://linkedin.example/feed/update/urn:li:activity:7000000000000000001`
+`https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000001`

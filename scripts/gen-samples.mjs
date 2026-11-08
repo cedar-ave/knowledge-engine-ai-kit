@@ -1,6 +1,7 @@
 // Regenerates samples/ (fictional data only). Run: node scripts/gen-samples.mjs
-// Slack and LinkedIn items use placeholder hosts: the leak check forbids real slack.com / linkedin.com/feed URLs here.
+// Slack and LinkedIn items use real URL formats with fictional values (workspace example-workspace, allowlisted activity IDs); see scripts/leak-check.mjs.
 import fs from 'node:fs';
+import YAML from 'yaml';
 import path from 'node:path';
 import { writeMd } from '../lib/md.mjs';
 import { fileName } from '../lib/ids.mjs';
@@ -56,8 +57,10 @@ ent('events', 'sample-docs-conf-2026', { type: 'event', title: 'Sample Docs Conf
 // ---------- items ----------
 const common = { 'captured-on': '2026-06-01', concepts: ['Content drift'], 'knowledge-types': ['best-practice'] };
 const SUMMARY = '## Summary\nA fictional item used to test the knowledge base tooling.\n\n## Key takeaways\n- Sample takeaway one.\n- Sample takeaway two.\n- Sample takeaway three.\n\n## Tools mentioned\nNone mentioned\n\n## Articles & resources\nNone mentioned\n';
-const item = (data, { body = SUMMARY, captured, source } = {}) => {
+const external = {}; // item file -> { meta-provenance }, written to items.metadata.yaml (manni keeps it outside the page)
+const item = (data, { body = SUMMARY, captured } = {}) => {
   const d = { ...common, ...data };
+  if (d['meta-provenance']) { external[`items/${fileName(d.id, d.title)}`] = { 'meta-provenance': d['meta-provenance'] }; delete d['meta-provenance']; }
   let text = body;
   if (captured != null) {
     d['captured-text-sha256'] = capturedHash(captured);
@@ -103,7 +106,7 @@ const segs = [
 item({
   id: 'yt:EPISODE0001', type: 'episode', title: 'Keeping Docs Honest at Scale', description: 'A guest explains how their team gates releases on doc accuracy.',
   resource: 'https://www.youtube.com/watch?v=EPISODE0001', capture: 'verbatim', hosts: ['ben-example'], guests: ['ada-sample'], organizations: ['acme-docs'],
-  publisher: 'Docs Talk Sample Podcast', published: '2026-04-02', 'length-min': 41, genre: ['interview'], 'knowledge-types': ['case-study', 'reference'],
+  publisher: 'Docs Talk Sample Podcast', 'last-reviewed': '2026-06-02', published: '2026-04-02', 'length-min': 41, genre: ['interview'], 'knowledge-types': ['case-study', 'reference'],
   'part-of': 'web:podcasts.example/show/docs-talk', 'first-hand': true, tools: ['driftcheck'], segments: segs, 'sample-questions': q3('this episode'),
 }, { captured: transcript('Today: drift.', 'We run DriftCheck on every pull request.') });
 
@@ -135,29 +138,32 @@ item({
 
 item({
   id: 'li:7000000000000000001', type: 'linkedin-post', title: 'A Note on Doc Debt', 'title-devised': true, description: 'A short post arguing that doc debt compounds like code debt.',
-  resource: 'https://linkedin.example/feed/update/urn:li:activity:7000000000000000001', capture: 'verbatim', authors: ['ada-sample'], published: '2026-02',
+  resource: 'https://www.linkedin.com/feed/update/urn:li:activity:7000000000000000001', capture: 'verbatim', authors: ['ada-sample'], published: '2026-02',
   genre: ['opinion'], 'sample-questions': q3('doc debt'), 'lifecycle-stages': ['management-and-maintenance'],
 }, { captured: 'Doc debt compounds. Every skipped update makes the next one harder.' });
 
 item({
   id: 'li:7000000000000000002', type: 'linkedin-article', title: 'Why We Retired Our Wiki', description: 'An article describing the move from a wiki to docs-as-code.',
-  resource: 'https://linkedin.example/pulse/why-we-retired-our-wiki', capture: 'verbatim', authors: ['ada-sample'], concepts: ['Docs as code'], 'knowledge-types': ['case-study'],
+  resource: 'https://www.linkedin.com/pulse/why-we-retired-our-wiki', capture: 'verbatim', authors: ['ada-sample'], concepts: ['Docs as code'], 'knowledge-types': ['case-study'],
   'first-hand': true, 'sample-questions': q3('retiring a wiki'),
 }, { captured: 'We moved every page into Git and added review on pull requests.' });
 
 item({
-  id: 'slack:acme:C0SAMPLE1:1790883092.003079', type: 'slack-thread', title: 'Thread on Docs Linting Rules', 'title-devised': true, description: 'A discussion about which lint rules to enforce.',
-  resource: 'https://acme-sample.example/archives/C0SAMPLE1/p1790883092003079', capture: 'verbatim', 'slack-workspace': 'acme', 'slack-channel': '#docs-quality',
+  id: 'slack:example-workspace:C0000000000:1790883092.003079', type: 'slack-thread', title: 'Thread on Docs Linting Rules', 'title-devised': true, description: 'A discussion about which lint rules to enforce.',
+  resource: 'https://example-workspace.slack.com/archives/C0000000000/p1790883092003079', capture: 'verbatim', 'slack-workspace': 'example-workspace', 'slack-channel': '#docs-quality',
   published: '2026-10-01', genre: ['discussion'], concepts: ['Documentation CI'], 'sample-questions': q3('lint rules'), 'shared-in': [],
 }, { captured: '[2026-10-01 09:00] Ben: Should we fail the build on style warnings?\n[2026-10-01 09:05] Ada: Only on errors, otherwise people ignore it.' });
 
 // kb.config.yaml for the samples
-fs.writeFileSync(path.join(OUT, 'kb.config.yaml'), 'owner: Sample Owner\nslack-workspaces:\n  - subdomain: acme\n    team-id: T0SAMPLE1\n    name: Acme Sample\ntimezone: UTC\ntakeaway-lens: >\n  Fictional lens for the sample dataset.\n');
+fs.writeFileSync(path.join(OUT, 'kb.config.yaml'), 'owner: Sample Owner\nslack-workspaces:\n  - subdomain: example-workspace\n    team-id: T0000000000\n    name: Example Workspace\ntimezone: UTC\ntakeaway-lens: >\n  Fictional lens for the sample dataset.\n');
 
 // manni config for the samples (paths relative to samples/; the private repo points at node_modules/knowledge-engine-ai-kit/schema/)
 fs.writeFileSync(path.join(OUT, 'manni.config.yaml'), `collections:
   - name: items
     paths: ["items/**/*.md"]
+    externalMetadata:
+      - file: ./items.metadata.yaml
+        keys: [meta-provenance]
   - name: concepts
     paths: ["concepts/**/*.md"]
     exclude: ["concepts/CHANGELOG.md"]
@@ -186,3 +192,4 @@ meta:
         - ../schema/kb-entity.schema.json
 `);
 fs.writeFileSync(path.join(OUT, '.gitignore'), 'schema/\nvocab.compact.md\n');
+fs.writeFileSync(path.join(OUT, 'items.metadata.yaml'), YAML.stringify(external));

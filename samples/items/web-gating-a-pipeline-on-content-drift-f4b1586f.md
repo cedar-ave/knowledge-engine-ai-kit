@@ -29,13 +29,6 @@ sample-questions:
   - What does drift gates say about docs?
   - How would I apply drift gates?
   - Why does drift gates matter?
-meta-provenance:
-  - generated-by: claude-sonnet-5-5
-    fields:
-      - /concepts
-      - /sample-questions
-    confidence:
-      /concepts: 0.8
 captured-text-sha256: 23018ab6e18854418314f51337c3fdd3e645cb7ba26ea368c2c0dcbc9440e7d0
 ---
 ## Summary
