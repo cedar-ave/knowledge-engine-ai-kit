@@ -1,0 +1,12 @@
+---
+type: term
+id: review-gates
+in-scheme: topics
+status: approved
+title: Review gates
+description: "Sample term: Review gates."
+label: Review gates
+related-terms:
+  - Docs as code
+---
+

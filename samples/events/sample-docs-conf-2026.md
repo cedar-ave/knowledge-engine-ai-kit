@@ -1,0 +1,9 @@
+---
+type: event
+title: Sample Docs Conf 2026
+description: Fictional documentation conference.
+resource: https://sampledocsconf.example/2026
+start-date: 2026-05-04
+online: true
+---
+

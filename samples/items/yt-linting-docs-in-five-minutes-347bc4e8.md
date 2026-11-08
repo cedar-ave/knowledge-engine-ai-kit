@@ -1,0 +1,52 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - how-to
+id: yt:VIDEO000002
+type: video
+title: Linting Docs in Five Minutes
+description: A short demo of adding a prose linter to a docs repo.
+resource: https://www.youtube.com/watch?v=VIDEO000002
+capture: verbatim
+authors:
+  - ada-sample
+length-min: 5
+part-of: web:youtube.example/@sampledocs
+tools:
+  - lintly
+lifecycle-stages:
+  - validation-rules
+sample-questions:
+  - What does prose linting say about docs?
+  - How would I apply prose linting?
+  - Why does prose linting matter?
+segments:
+  - slug: setup
+    title: Setup
+    start: 00:00:00
+    knowledge-type: how-to
+captured-text-sha256: 3c26dfb0eec6771179256c32542f3f512c97b12d5d8be3549744e35ec679640b
+---
+## Summary
+A fictional item used to test the knowledge base tooling.
+
+## Key takeaways
+- Sample takeaway one.
+- Sample takeaway two.
+- Sample takeaway three.
+
+## Tools mentioned
+None mentioned
+
+## Articles & resources
+None mentioned
+
+## Captured text
+### Setup
+[00:00:00] Install Lintly, then add a config file.
+[00:00:30] Run it in CI.
+
+## Source
+`https://www.youtube.com/watch?v=VIDEO000002`

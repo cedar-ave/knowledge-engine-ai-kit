@@ -1,0 +1,11 @@
+---
+type: term
+id: open-source
+in-scheme: org-contexts
+status: approved
+title: Open source
+description: "Sample term: Open source."
+label: Open source
+notation: open-source
+---
+

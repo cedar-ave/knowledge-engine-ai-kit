@@ -1,0 +1,15 @@
+---
+type: term
+id: api-reference-docs
+in-scheme: doc-types
+status: approved
+title: API reference docs
+description: "Sample term: API reference docs."
+label: API reference docs
+notation: api-reference-docs
+alt-labels:
+  - API reference
+  - API ref
+  - endpoint reference
+---
+

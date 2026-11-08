@@ -1,0 +1,11 @@
+---
+type: term
+id: delivery-and-findability
+in-scheme: lifecycle-stages
+status: approved
+title: Delivery and findability
+description: "Sample term: Delivery and findability."
+label: Delivery and findability
+notation: delivery-and-findability
+---
+

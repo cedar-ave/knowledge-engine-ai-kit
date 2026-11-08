@@ -1,0 +1,45 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - best-practice
+id: li:7000000000000000001
+type: linkedin-post
+title: A Note on Doc Debt
+title-devised: true
+description: A short post arguing that doc debt compounds like code debt.
+resource: https://linkedin.example/feed/update/urn:li:activity:7000000000000000001
+capture: verbatim
+authors:
+  - ada-sample
+published: 2026-02
+genre:
+  - opinion
+sample-questions:
+  - What does doc debt say about docs?
+  - How would I apply doc debt?
+  - Why does doc debt matter?
+lifecycle-stages:
+  - management-and-maintenance
+captured-text-sha256: 2fa3b0654d377f4b2ba20c813ed5e8017e2db493ed49f12dfc6cdf0caa646e63
+---
+## Summary
+A fictional item used to test the knowledge base tooling.
+
+## Key takeaways
+- Sample takeaway one.
+- Sample takeaway two.
+- Sample takeaway three.
+
+## Tools mentioned
+None mentioned
+
+## Articles & resources
+None mentioned
+
+## Captured text
+Doc debt compounds. Every skipped update makes the next one harder.
+
+## Source
+`https://linkedin.example/feed/update/urn:li:activity:7000000000000000001`

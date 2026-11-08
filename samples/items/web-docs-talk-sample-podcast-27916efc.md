@@ -1,0 +1,20 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - best-practice
+id: web:podcasts.example/show/docs-talk
+type: podcast
+title: Docs Talk Sample Podcast
+description: Fictional podcast used as a bookmark sample.
+resource: https://podcasts.example/show/docs-talk
+capture: bookmark
+sample-questions:
+  - Which podcasts cover docs quality?
+---
+## Summary
+A fictional source worth returning to.
+
+## Source
+`https://podcasts.example/show/docs-talk`

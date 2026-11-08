@@ -1,0 +1,24 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - example
+id: web:docs.acme-docs.example
+type: docs-site
+title: Acme Docs Developer Portal
+description: Fictional docs-site used as a bookmark sample.
+resource: https://docs.acme-docs.example/
+capture: bookmark
+sample-questions:
+  - Which docs-sites cover docs quality?
+example-of:
+  - Interactive API console
+tools:
+  - pagefinder
+---
+## Summary
+A fictional source worth returning to.
+
+## Source
+`https://docs.acme-docs.example/`

@@ -1,0 +1,61 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - best-practice
+id: web:sample-blog.example/posts/drift-gates
+type: article
+title: Gating a Pipeline on Content Drift
+description: Shows how to fail a build when docs diverge from the API spec.
+resource: https://sample-blog.example/posts/drift-gates
+capture: full-text
+authors:
+  - ada-sample
+publisher: The Sample Docs Blog
+published: 2026-03-14
+genre:
+  - opinion
+part-of: web:sample-blog.example
+lifecycle-stages:
+  - validation-accuracy
+  - publishing
+org-contexts:
+  - startup
+tools:
+  - driftcheck
+first-hand: true
+sample-questions:
+  - What does drift gates say about docs?
+  - How would I apply drift gates?
+  - Why does drift gates matter?
+meta-provenance:
+  - generated-by: claude-sonnet-5-5
+    fields:
+      - /concepts
+      - /sample-questions
+    confidence:
+      /concepts: 0.8
+captured-text-sha256: 23018ab6e18854418314f51337c3fdd3e645cb7ba26ea368c2c0dcbc9440e7d0
+---
+## Summary
+A fictional item used to test the knowledge base tooling.
+
+## Key takeaways
+- Sample takeaway one.
+- Sample takeaway two.
+- Sample takeaway three.
+
+## Tools mentioned
+None mentioned
+
+## Articles & resources
+None mentioned
+
+## Captured text
+Docs drift when the product changes and the pages do not.
+
+We added a CI step that compares the OpenAPI file to the reference pages and fails the build on any mismatch.
+
+## Source
+`https://sample-blog.example/posts/drift-gates`

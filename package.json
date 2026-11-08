@@ -1,0 +1,37 @@
+{
+  "name": "knowledge-engine-ai-kit",
+  "version": "0.1.0",
+  "description": "Skills, CLI, schemas and site template for a Markdown knowledge base.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "kb": "bin/kb.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "validate": "node bin/kb.mjs validate --root samples"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "schema",
+    "docs",
+    "skills",
+    ".claude-plugin"
+  ],
+  "dependencies": {
+    "@hawkeyexl/manni": "4.28.0",
+    "@mozilla/readability": "0.6.0",
+    "@tobilu/qmd": "2.8.3",
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "gray-matter": "4.0.3",
+    "husky": "9.1.7",
+    "jsdom": "31.0.0",
+    "turndown": "7.2.5",
+    "yaml": "2.9.1"
+  }
+}

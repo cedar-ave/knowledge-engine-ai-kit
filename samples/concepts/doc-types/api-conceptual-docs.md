@@ -1,0 +1,11 @@
+---
+type: term
+id: api-conceptual-docs
+in-scheme: doc-types
+status: approved
+title: API conceptual docs
+description: "Sample term: API conceptual docs."
+label: API conceptual docs
+notation: api-conceptual-docs
+---
+

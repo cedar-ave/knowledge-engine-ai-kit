@@ -1,0 +1,11 @@
+{
+  "name": "knowledge-engine-ai-kit",
+  "owner": { "name": "cedar-ave" },
+  "plugins": [
+    {
+      "name": "knowledge-engine-ai-kit",
+      "source": "./",
+      "description": "Skills for adding to, researching and maintaining a Markdown knowledge base."
+    }
+  ]
+}

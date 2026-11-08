@@ -1,0 +1,12 @@
+---
+type: term
+id: documentation-ci
+in-scheme: topics
+status: approved
+title: Documentation CI
+description: "Sample term: Documentation CI."
+label: Documentation CI
+broader:
+  - Docs as code
+---
+

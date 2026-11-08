@@ -1,0 +1,29 @@
+collections:
+  - name: items
+    paths: ["items/**/*.md"]
+  - name: concepts
+    paths: ["concepts/**/*.md"]
+    exclude: ["concepts/CHANGELOG.md"]
+  - name: entities
+    paths: ["tools/**/*.md", "people/**/*.md", "organizations/**/*.md", "events/**/*.md", "series/**/*.md"]
+meta:
+  overrides:
+    - collection: items
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - manni:structure:1.0.0
+        - manni:ai-context:1.1.0
+        - ../schema/kb-item.schema.json
+        - ./schema/vocab.enum.json
+    - collection: concepts
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - manni:terminology:1.2.0
+        - ../schema/kb-term.schema.json
+    - collection: entities
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - ../schema/kb-entity.schema.json

@@ -1,0 +1,11 @@
+---
+type: term
+id: tool-overview
+in-scheme: knowledge-types
+status: approved
+title: Tool overview
+description: "Sample term: Tool overview."
+label: Tool overview
+notation: tool-overview
+---
+

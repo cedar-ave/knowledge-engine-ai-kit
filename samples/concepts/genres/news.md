@@ -1,0 +1,11 @@
+---
+type: term
+id: news
+in-scheme: genres
+status: approved
+title: News
+description: "Sample term: News."
+label: News
+notation: news
+---
+

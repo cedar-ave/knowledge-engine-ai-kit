@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "kb:term:1.0.0",
+  "title": "Vocabulary term frontmatter (SKOS)",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "in-scheme",
+    "status",
+    "title",
+    "description",
+    "label"
+  ],
+  "properties": {
+    "type": {
+      "const": "term"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "in-scheme": {
+      "enum": [
+        "topics",
+        "docs-artifacts",
+        "frameworks",
+        "genres",
+        "knowledge-types",
+        "lifecycle-stages",
+        "doc-types",
+        "org-contexts"
+      ]
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "approved",
+        "deprecated"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "notation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "see": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scope-note": {
+      "type": "string",
+      "minLength": 1
+    },
+    "alt-labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "hidden-labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "broader": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "narrower": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "related-terms": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

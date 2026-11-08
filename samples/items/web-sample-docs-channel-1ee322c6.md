@@ -1,0 +1,20 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - best-practice
+id: web:youtube.example/@sampledocs
+type: channel
+title: Sample Docs Channel
+description: Fictional channel used as a bookmark sample.
+resource: https://youtube.example/@sampledocs
+capture: bookmark
+sample-questions:
+  - Which channels cover docs quality?
+---
+## Summary
+A fictional source worth returning to.
+
+## Source
+`https://youtube.example/@sampledocs`

@@ -1,0 +1,188 @@
+// Regenerates samples/ (fictional data only). Run: node scripts/gen-samples.mjs
+// Slack and LinkedIn items use placeholder hosts: the leak check forbids real slack.com / linkedin.com/feed URLs here.
+import fs from 'node:fs';
+import path from 'node:path';
+import { writeMd } from '../lib/md.mjs';
+import { fileName } from '../lib/ids.mjs';
+import { capturedHash } from '../lib/captured.mjs';
+
+const OUT = 'samples';
+fs.rmSync(OUT, { recursive: true, force: true });
+const put = (rel, data, body = '') => {
+  const f = path.join(OUT, rel);
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  writeMd(f, data, body.endsWith('\n') ? body : body + '\n');
+};
+
+// ---------- vocabularies ----------
+const term = (scheme, label, extra = {}) => {
+  const id = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  put(`concepts/${scheme}/${id}.md`, {
+    type: 'term', id, 'in-scheme': scheme, status: 'approved', title: label,
+    description: extra.description ?? `Sample term: ${label}.`, label, ...extra.rest,
+  });
+};
+const closed = (scheme, rows) => rows.forEach(([notation, label, alt]) => term(scheme, label, { rest: { notation, ...(alt ? { 'alt-labels': alt } : {}) } }));
+
+closed('genres', [['news', 'News'], ['opinion', 'Opinion'], ['research', 'Research'], ['recap', 'Recap'], ['discussion', 'Discussion'], ['interview', 'Interview']]);
+closed('knowledge-types', [['case-study', 'Case study'], ['how-to', 'How-to'], ['best-practice', 'Best practice'], ['tool-overview', 'Tool overview'], ['comparison', 'Comparison'], ['example', 'Example'], ['reference', 'Reference']]);
+closed('lifecycle-stages', ['strategy', 'information-architecture', 'drafting', 'validation-accuracy', 'validation-rules', 'human-review', 'qa-and-testing', 'publishing', 'delivery-and-findability', 'analytics', 'feedback', 'management-and-maintenance']
+  .map((n) => [n, n.split('-').map((w, i) => (i ? w : w[0].toUpperCase() + w.slice(1))).join(' ')]));
+closed('doc-types', [['api-reference-docs', 'API reference docs', ['API reference', 'API ref', 'endpoint reference']], ['api-conceptual-docs', 'API conceptual docs'], ['sdk-docs', 'SDK docs'], ['product-docs', 'Product docs'], ['release-notes', 'Release notes'], ['internal-kb', 'Internal knowledge base']]);
+closed('org-contexts', [['solo-writer', 'Solo writer'], ['startup', 'Startup'], ['scaleup', 'Scale-up'], ['enterprise', 'Enterprise'], ['open-source', 'Open source']]);
+
+term('topics', 'Content accuracy');
+term('topics', 'Content drift', { description: 'Divergence between documentation and the actual product behavior.', rest: { 'alt-labels': ['docs drift', 'stale docs'], broader: ['Content accuracy'], 'scope-note': 'Use for detecting or preventing drift.' } });
+term('topics', 'Docs as code');
+term('topics', 'Review gates', { rest: { 'related-terms': ['Docs as code'] } });
+term('topics', 'AI-ready content');
+term('topics', 'Documentation CI', { rest: { broader: ['Docs as code'] } });
+term('docs-artifacts', 'Interactive API console', { rest: { 'alt-labels': ['try-it console'] } });
+term('docs-artifacts', 'Changelog page');
+term('frameworks', 'Diataxis', { rest: { 'alt-labels': ['Diátaxis'] } });
+term('frameworks', 'Docs maturity model');
+fs.writeFileSync(path.join(OUT, 'concepts', 'CHANGELOG.md'), '# Vocabulary changelog\n\n- 2026-01-01: seeded sample vocabulary (fictional)\n');
+
+// ---------- entities ----------
+const ent = (dir, slug, data) => put(`${dir}/${slug}.md`, { ...data });
+ent('tools', 'driftcheck', { type: 'tool', title: 'DriftCheck', description: 'Fictional CLI that compares docs against API specs.', resource: 'https://driftcheck.example/', 'alt-labels': ['Drift Check'] });
+ent('tools', 'lintly', { type: 'tool', title: 'Lintly', description: 'Fictional prose linter for docs.', resource: 'https://lintly.example/' });
+ent('tools', 'pagefinder', { type: 'tool', title: 'PageFinder', description: 'Fictional docs search service.', resource: 'https://pagefinder.example/' });
+ent('people', 'ada-sample', { type: 'person', title: 'Ada Sample', description: 'Fictional docs engineer.', 'alt-labels': ['A. Sample'], 'same-as': ['https://ada-sample.example/'] });
+ent('people', 'ben-example', { type: 'person', title: 'Ben Example', description: 'Fictional podcast host.', 'alt-labels': ['Benjamin Example'] });
+ent('organizations', 'acme-docs', { type: 'organization', title: 'Acme Docs', description: 'Fictional company that publishes developer documentation.', resource: 'https://acme-docs.example/', 'alt-labels': ['Acme Documentation'] });
+ent('events', 'sample-docs-conf-2026', { type: 'event', title: 'Sample Docs Conf 2026', description: 'Fictional documentation conference.', resource: 'https://sampledocsconf.example/2026', 'start-date': '2026-05-04', online: true });
+
+// ---------- items ----------
+const common = { 'captured-on': '2026-06-01', concepts: ['Content drift'], 'knowledge-types': ['best-practice'] };
+const SUMMARY = '## Summary\nA fictional item used to test the knowledge base tooling.\n\n## Key takeaways\n- Sample takeaway one.\n- Sample takeaway two.\n- Sample takeaway three.\n\n## Tools mentioned\nNone mentioned\n\n## Articles & resources\nNone mentioned\n';
+const item = (data, { body = SUMMARY, captured, source } = {}) => {
+  const d = { ...common, ...data };
+  let text = body;
+  if (captured != null) {
+    d['captured-text-sha256'] = capturedHash(captured);
+    text += `\n## Captured text\n${captured}\n`;
+  }
+  text += `\n## Source\n\`${d.resource}\`\n`;
+  put(`items/${fileName(d.id, d.title)}`, d, text);
+};
+const q3 = (t) => [`What does ${t} say about docs?`, `How would I apply ${t}?`, `Why does ${t} matter?`];
+
+// Sources (bookmarks)
+const BM = '## Summary\nA fictional source worth returning to.\n';
+const bookmark = (type, id, title, resource, extra = {}) => item({
+  id, type, title, description: `Fictional ${type} used as a bookmark sample.`, resource, capture: 'bookmark',
+  'sample-questions': [`Which ${type}s cover docs quality?`], ...extra,
+}, { body: BM });
+bookmark('blog', 'web:sample-blog.example', 'The Sample Docs Blog', 'https://sample-blog.example/');
+bookmark('newsletter', 'web:docsweekly.example', 'Docs Weekly Sample', 'https://docsweekly.example/');
+bookmark('podcast', 'web:podcasts.example/show/docs-talk', 'Docs Talk Sample Podcast', 'https://podcasts.example/show/docs-talk');
+bookmark('channel', 'web:youtube.example/@sampledocs', 'Sample Docs Channel', 'https://youtube.example/@sampledocs');
+bookmark('docs-site', 'web:docs.acme-docs.example', 'Acme Docs Developer Portal', 'https://docs.acme-docs.example/', { 'knowledge-types': ['example'], 'example-of': ['Interactive API console'], tools: ['pagefinder'] });
+bookmark('portfolio', 'web:ada-sample.example', 'Ada Sample Portfolio', 'https://ada-sample.example/', { 'knowledge-types': ['example'], 'example-of': ['Diataxis'], authors: ['ada-sample'] });
+bookmark('website', 'web:docsresearch.example', 'Docs Research Hub', 'https://docsresearch.example/');
+bookmark('repo', 'web:github.example/acme/docs-starter', 'Acme Docs Starter Repo', 'https://github.example/acme/docs-starter', { 'knowledge-types': ['example'], 'example-of': ['release-notes'] });
+bookmark('book', 'web:books.example/docs-that-last', 'Docs That Last', 'https://books.example/docs-that-last');
+bookmark('course', 'web:courses.example/docs-ci', 'Docs CI Fundamentals', 'https://courses.example/docs-ci');
+
+// Pieces
+item({
+  id: 'web:sample-blog.example/posts/drift-gates', type: 'article', title: 'Gating a Pipeline on Content Drift',
+  description: 'Shows how to fail a build when docs diverge from the API spec.', resource: 'https://sample-blog.example/posts/drift-gates',
+  capture: 'full-text', authors: ['ada-sample'], publisher: 'The Sample Docs Blog', published: '2026-03-14', genre: ['opinion'],
+  'part-of': 'web:sample-blog.example', 'lifecycle-stages': ['validation-accuracy', 'publishing'], 'org-contexts': ['startup'],
+  tools: ['driftcheck'], 'first-hand': true, 'sample-questions': q3('drift gates'),
+  'meta-provenance': [{ 'generated-by': 'claude-sonnet-5-5', fields: ['/concepts', '/sample-questions'], confidence: { '/concepts': 0.8 } }],
+}, { captured: 'Docs drift when the product changes and the pages do not.\n\nWe added a CI step that compares the OpenAPI file to the reference pages and fails the build on any mismatch.' });
+
+const transcript = (a, b) => `### Introduction\n[00:00:00] Host: Welcome to the show. ${a}\n[00:00:30] Guest: Thanks for having me.\n\n### The drift gate\n[00:12:40] Guest: ${b}\n[00:13:10] Host: That is a useful pattern.`;
+const segs = [
+  { slug: 'introduction', title: 'Introduction', start: '00:00:00', 'knowledge-type': 'reference' },
+  { slug: 'the-drift-gate', title: 'The drift gate', start: '00:12:40', 'knowledge-type': 'case-study', concepts: ['Content drift'], tools: ['driftcheck'], 'first-hand': true },
+];
+item({
+  id: 'yt:EPISODE0001', type: 'episode', title: 'Keeping Docs Honest at Scale', description: 'A guest explains how their team gates releases on doc accuracy.',
+  resource: 'https://www.youtube.com/watch?v=EPISODE0001', capture: 'verbatim', hosts: ['ben-example'], guests: ['ada-sample'], organizations: ['acme-docs'],
+  publisher: 'Docs Talk Sample Podcast', published: '2026-04-02', 'length-min': 41, genre: ['interview'], 'knowledge-types': ['case-study', 'reference'],
+  'part-of': 'web:podcasts.example/show/docs-talk', 'first-hand': true, tools: ['driftcheck'], segments: segs, 'sample-questions': q3('this episode'),
+}, { captured: transcript('Today: drift.', 'We run DriftCheck on every pull request.') });
+
+item({
+  id: 'yt:VIDEO000002', type: 'video', title: 'Linting Docs in Five Minutes', description: 'A short demo of adding a prose linter to a docs repo.',
+  resource: 'https://www.youtube.com/watch?v=VIDEO000002', capture: 'verbatim', authors: ['ada-sample'], 'length-min': 5, 'knowledge-types': ['how-to'],
+  'part-of': 'web:youtube.example/@sampledocs', tools: ['lintly'], 'lifecycle-stages': ['validation-rules'], 'sample-questions': q3('prose linting'),
+  segments: [{ slug: 'setup', title: 'Setup', start: '00:00:00', 'knowledge-type': 'how-to' }],
+}, { captured: '### Setup\n[00:00:00] Install Lintly, then add a config file.\n[00:00:30] Run it in CI.' });
+
+item({
+  id: 'yt:TALK0000003', type: 'talk', title: 'Review Gates That Scale', description: 'A conference talk on ownership and review gates for docs.',
+  resource: 'https://www.youtube.com/watch?v=TALK0000003', capture: 'verbatim', authors: ['ada-sample'], event: 'sample-docs-conf-2026', 'length-min': 30,
+  'part-of': 'web:youtube.example/@sampledocs', concepts: ['Review gates'], 'knowledge-types': ['best-practice'], genre: ['recap'], 'first-hand': true,
+  'sample-questions': q3('review gates'),
+  segments: [{ slug: 'slide-1-why-gates', title: 'Slide 1: Why gates', start: '00:00:10', 'knowledge-type': 'best-practice', 'first-hand': true }],
+}, { captured: '### Slide 1: Why gates\n[00:00:10] [Slide 1: Why gates] Gates keep unreviewed changes out.\n[00:00:40] Speaker: Every gate needs an owner.' });
+
+item({
+  id: 'web:slides.example/ai-ready-content', type: 'slide-deck', title: 'AI-Ready Content Checklist', description: 'A standalone deck listing rules that make docs easy for agents to use.',
+  resource: 'https://slides.example/ai-ready-content', capture: 'full-text', authors: ['ada-sample'], concepts: ['AI-ready content'], 'sample-questions': q3('AI-ready content'),
+}, { captured: '[Slide 1: Checklist] Use clear headings.\n[Slide 2: Checklist] Keep pages self-contained.' });
+
+item({
+  id: 'web:docs.acme-docs.example/api/orders', type: 'docs-page', title: 'Orders API Reference', description: 'A reference page with an interactive console, saved as an example.',
+  resource: 'https://docs.acme-docs.example/api/orders', capture: 'full-text', organizations: ['acme-docs'], 'knowledge-types': ['example'], 'example-of': ['Interactive API console'],
+  'doc-types': ['api-reference-docs'], 'part-of': 'web:docs.acme-docs.example', 'sample-questions': q3('the Orders reference'),
+}, { captured: '# Orders API\n\nGET /orders returns a list of orders. Try it in the console.' });
+
+item({
+  id: 'li:7000000000000000001', type: 'linkedin-post', title: 'A Note on Doc Debt', 'title-devised': true, description: 'A short post arguing that doc debt compounds like code debt.',
+  resource: 'https://linkedin.example/feed/update/urn:li:activity:7000000000000000001', capture: 'verbatim', authors: ['ada-sample'], published: '2026-02',
+  genre: ['opinion'], 'sample-questions': q3('doc debt'), 'lifecycle-stages': ['management-and-maintenance'],
+}, { captured: 'Doc debt compounds. Every skipped update makes the next one harder.' });
+
+item({
+  id: 'li:7000000000000000002', type: 'linkedin-article', title: 'Why We Retired Our Wiki', description: 'An article describing the move from a wiki to docs-as-code.',
+  resource: 'https://linkedin.example/pulse/why-we-retired-our-wiki', capture: 'verbatim', authors: ['ada-sample'], concepts: ['Docs as code'], 'knowledge-types': ['case-study'],
+  'first-hand': true, 'sample-questions': q3('retiring a wiki'),
+}, { captured: 'We moved every page into Git and added review on pull requests.' });
+
+item({
+  id: 'slack:acme:C0SAMPLE1:1790883092.003079', type: 'slack-thread', title: 'Thread on Docs Linting Rules', 'title-devised': true, description: 'A discussion about which lint rules to enforce.',
+  resource: 'https://acme-sample.example/archives/C0SAMPLE1/p1790883092003079', capture: 'verbatim', 'slack-workspace': 'acme', 'slack-channel': '#docs-quality',
+  published: '2026-10-01', genre: ['discussion'], concepts: ['Documentation CI'], 'sample-questions': q3('lint rules'), 'shared-in': [],
+}, { captured: '[2026-10-01 09:00] Ben: Should we fail the build on style warnings?\n[2026-10-01 09:05] Ada: Only on errors, otherwise people ignore it.' });
+
+// kb.config.yaml for the samples
+fs.writeFileSync(path.join(OUT, 'kb.config.yaml'), 'owner: Sample Owner\nslack-workspaces:\n  - subdomain: acme\n    team-id: T0SAMPLE1\n    name: Acme Sample\ntimezone: UTC\ntakeaway-lens: >\n  Fictional lens for the sample dataset.\n');
+
+// manni config for the samples (paths relative to samples/; the private repo points at node_modules/knowledge-engine-ai-kit/schema/)
+fs.writeFileSync(path.join(OUT, 'manni.config.yaml'), `collections:
+  - name: items
+    paths: ["items/**/*.md"]
+  - name: concepts
+    paths: ["concepts/**/*.md"]
+    exclude: ["concepts/CHANGELOG.md"]
+  - name: entities
+    paths: ["tools/**/*.md", "people/**/*.md", "organizations/**/*.md", "events/**/*.md", "series/**/*.md"]
+meta:
+  overrides:
+    - collection: items
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - manni:structure:1.0.0
+        - manni:ai-context:1.1.0
+        - ../schema/kb-item.schema.json
+        - ./schema/vocab.enum.json
+    - collection: concepts
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - manni:terminology:1.2.0
+        - ../schema/kb-term.schema.json
+    - collection: entities
+      schemas:
+        - google:okf:0.1
+        - manni:core:1.0.0
+        - ../schema/kb-entity.schema.json
+`);
+fs.writeFileSync(path.join(OUT, '.gitignore'), 'schema/\nvocab.compact.md\n');

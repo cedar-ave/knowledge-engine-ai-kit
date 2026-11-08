@@ -1,0 +1,22 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - example
+id: web:github.example/acme/docs-starter
+type: repo
+title: Acme Docs Starter Repo
+description: Fictional repo used as a bookmark sample.
+resource: https://github.example/acme/docs-starter
+capture: bookmark
+sample-questions:
+  - Which repos cover docs quality?
+example-of:
+  - release-notes
+---
+## Summary
+A fictional source worth returning to.
+
+## Source
+`https://github.example/acme/docs-starter`

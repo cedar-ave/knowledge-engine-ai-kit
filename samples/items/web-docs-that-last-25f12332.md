@@ -1,0 +1,20 @@
+---
+captured-on: 2026-06-01
+concepts:
+  - Content drift
+knowledge-types:
+  - best-practice
+id: web:books.example/docs-that-last
+type: book
+title: Docs That Last
+description: Fictional book used as a bookmark sample.
+resource: https://books.example/docs-that-last
+capture: bookmark
+sample-questions:
+  - Which books cover docs quality?
+---
+## Summary
+A fictional source worth returning to.
+
+## Source
+`https://books.example/docs-that-last`
