@@ -13,6 +13,8 @@ capture: verbatim
 authors:
   - ada-sample
 first-hand: true
+lifecycle-stages:
+  - management-and-maintenance
 sample-questions:
   - What does retiring a wiki say about docs?
   - How would I apply retiring a wiki?

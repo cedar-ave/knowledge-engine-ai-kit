@@ -41,6 +41,8 @@ segments:
     tools:
       - driftcheck
     first-hand: true
+lifecycle-stages:
+  - validation-accuracy
 sample-questions:
   - What does this episode say about docs?
   - How would I apply this episode?

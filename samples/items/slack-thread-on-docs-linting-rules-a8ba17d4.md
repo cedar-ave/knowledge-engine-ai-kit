@@ -16,6 +16,8 @@ slack-channel: "#docs-quality"
 published: 2026-10-01
 genre:
   - discussion
+lifecycle-stages:
+  - validation-rules
 sample-questions:
   - What does lint rules say about docs?
   - How would I apply lint rules?

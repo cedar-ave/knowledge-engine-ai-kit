@@ -12,6 +12,8 @@ resource: https://slides.example/ai-ready-content
 capture: full-text
 authors:
   - ada-sample
+lifecycle-stages:
+  - delivery-and-findability
 sample-questions:
   - What does AI-ready content say about docs?
   - How would I apply AI-ready content?

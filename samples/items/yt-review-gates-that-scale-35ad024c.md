@@ -18,6 +18,8 @@ part-of: web:youtube.example/@sampledocs
 genre:
   - recap
 first-hand: true
+lifecycle-stages:
+  - human-review
 sample-questions:
   - What does review gates say about docs?
   - How would I apply review gates?

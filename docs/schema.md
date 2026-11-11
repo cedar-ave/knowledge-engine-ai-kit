@@ -1,6 +1,6 @@
 # Item schema
 
-`schema/kb-item.schema.json` (`kb:item:1.0.0`) defines field shapes only. Allowed values for controlled fields come from the private repo's generated `schema/vocab.enum.json` (built by `kb gen-vocab` from `approved` terms). The only enums in the kit are structural: `type`, `capture`, term `status` and `in-scheme`. `additionalProperties` is `true` so manni's own vocabularies still apply.
+`schema/kb-item.schema.json` (`kb:item:1.0.0`) defines field shapes only. Allowed values for controlled fields come from the private repo's generated `schema/vocab.enum.json` (built by `kb gen-vocab` from `approved` and `candidate` terms; `deprecated` excluded). Items may use `candidate` terms: validation passes with a warning, and `kb term-usage` lists candidates with their item counts. Term files never store `narrower`; `kb gen-vocab` derives it from `broader` into `schema/vocab.narrower.json`, and `kb check-vocab` fails on a stored `narrower`. The only enums in the kit are structural: `type`, `capture`, term `status` and `in-scheme`. `additionalProperties` is `true` so manni's own vocabularies still apply.
 
 Validation stack for `items/`: `google:okf:0.1`, `manni:core:1.0.0`, `manni:structure:1.0.0`, `manni:ai-context:1.1.0`, `kb-item.schema.json`, `vocab.enum.json`.
 
@@ -20,7 +20,7 @@ Validation stack for `items/`: `google:okf:0.1`, `manni:core:1.0.0`, `manni:stru
 | `captured-on` | kit | Date saved |
 | `length-min` | kit | Audio and video |
 | `concepts` | manni structure | 1 to 6 labels from the `topics` and `frameworks` schemes |
-| `genre`, `knowledge-types`, `lifecycle-stages`, `org-contexts`, `doc-types` | kit | Notations from closed schemes |
+| `genre`, `knowledge-types`, `lifecycle-stages`, `org-contexts`, `doc-types` | kit | Notations from closed schemes. `lifecycle-stages` is required (≥1) for pieces, optional for bookmarks |
 | `example-of` | kit | Required when `knowledge-types` includes `example` |
 | `tools` | kit | Up to 8 slugs in `tools/` |
 | `first-hand`, `best`, `note` | kit | Agents never set `best` or `note` |
@@ -29,7 +29,7 @@ Validation stack for `items/`: `google:okf:0.1`, `manni:core:1.0.0`, `manni:stru
 | `related-pages` | manni structure | Item IDs or URLs |
 | `shared-in` | kit | Item IDs |
 | `captured-text-sha256` | kit | Checked by `kb check-captured-text` |
-| `capture` | kit | `verbatim`, `full-text`, `summary-only`, `extraction-failed`, `bookmark` |
+| `capture` | kit | `verbatim`, `full-text`, `partial`, `summary-only`, `extraction-failed`, `bookmark` |
 | `part-of` | Dublin Core `dcterms:isPartOf` | `id` of the source item |
 | `meta-provenance` | manni ai-context | manni's shape: `generated-by`, `fields` (JSON Pointers), `confidence`. Stored outside the page in `items.metadata.yaml`, declared by `externalMetadata` in `manni.config.yaml`. Deleting an entry marks it reviewed |
 | `last-reviewed` | manni stewardship (key and pattern) | Date a human last reviewed the metadata. The kit schema repeats manni's pattern instead of adding `manni:stewardship` to the stack, because that schema wants `authors` outside the page |

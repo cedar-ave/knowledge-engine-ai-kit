@@ -67,7 +67,7 @@ const item = {
     'related-pages': strList(),
     'shared-in': strList(),
     'captured-text-sha256': { type: 'string', pattern: '^[0-9a-f]{64}$' },
-    capture: { enum: ['verbatim', 'full-text', 'summary-only', 'extraction-failed', 'bookmark'] },
+    capture: { enum: ['verbatim', 'full-text', 'partial', 'summary-only', 'extraction-failed', 'bookmark'] },
     'part-of': str,
     'last-reviewed': { type: 'string', pattern: "^[0-9]{4}(-(0[1-9]|1[0-2])(-(0[1-9]|[12][0-9]|3[01])(T([01][0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9](\\.[0-9]+)?)?(Z|[+-]([01][0-9]|2[0-3]):[0-5][0-9]))?)?)?$", description: 'Same key and pattern as manni:stewardship:1.2.0 last-reviewed. Date a human last reviewed the metadata.' },
     'notion-url': { type: 'string', format: 'uri' },
@@ -80,7 +80,7 @@ const item = {
         properties: { 'sample-questions': { maxItems: 3 }, type: { enum: SOURCES } },
         not: { anyOf: [{ required: ['segments'] }, { required: ['captured-text-sha256'] }] },
       },
-      else: { properties: { 'sample-questions': { minItems: 3 }, type: { enum: PIECES } } },
+      else: { properties: { 'sample-questions': { minItems: 3 }, type: { enum: PIECES }, 'lifecycle-stages': { minItems: 1 } }, required: ['lifecycle-stages'] },
     },
     { if: { properties: { type: { const: 'slack-thread' } }, required: ['type'] }, then: { required: ['slack-workspace', 'slack-channel'] } },
   ],
@@ -134,7 +134,7 @@ const entity = {
   allOf: [
     {
       if: { properties: { type: { const: 'event' } }, required: ['type'] },
-      then: { required: ['start-date'], anyOf: [{ required: ['location'] }, { required: ['online'] }] },
+      then: { required: ['start-date'] },
     },
   ],
   additionalProperties: true,

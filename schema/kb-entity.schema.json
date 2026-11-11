@@ -77,18 +77,6 @@
       "then": {
         "required": [
           "start-date"
-        ],
-        "anyOf": [
-          {
-            "required": [
-              "location"
-            ]
-          },
-          {
-            "required": [
-              "online"
-            ]
-          }
         ]
       }
     }

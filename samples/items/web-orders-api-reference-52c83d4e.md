@@ -17,6 +17,8 @@ example-of:
 doc-types:
   - api-reference-docs
 part-of: web:docs.acme-docs.example
+lifecycle-stages:
+  - information-architecture
 sample-questions:
   - What does the Orders reference say about docs?
   - How would I apply the Orders reference?
