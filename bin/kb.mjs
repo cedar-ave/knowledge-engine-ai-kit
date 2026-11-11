@@ -12,6 +12,8 @@ import { digest } from '../lib/digest.mjs';
 import { classify, pickType } from '../lib/classify.mjs';
 import { importNotion, loadOverrides } from '../lib/notion.mjs';
 import { findDuplicates, renderDuplicates } from '../lib/dupes.mjs';
+import { splitFindings, taggedItems } from '../lib/migration.mjs';
+import { mdHeader, regen } from '../lib/generated.mjs';
 import { runFetch, fetchReport } from '../lib/fetch.mjs';
 
 const argv = process.argv.slice(2);
@@ -46,8 +48,20 @@ function manniBin() {
 }
 
 function runManni() {
-  const r = spawnSync(process.execPath, [manniBin(), 'meta', 'validate', '--quiet', '--allow-empty'], { cwd: root, stdio: 'inherit' });
-  return r.status ?? 1;
+  if (!loadConfig(root).migration) {
+    const r = spawnSync(process.execPath, [manniBin(), 'meta', 'validate', '--quiet', '--allow-empty'], { cwd: root, stdio: 'inherit' });
+    return r.status ?? 1;
+  }
+  // Migration mode (§0.9): tag-field errors on untagged items become warnings; everything else still fails.
+  const r = spawnSync(process.execPath, [manniBin(), 'meta', 'validate', '--allow-empty', '-f', 'json'], { cwd: root, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 });
+  let out;
+  try { out = JSON.parse(r.stdout); } catch { process.stderr.write(r.stdout + r.stderr); return 1; }
+  const { errors, warnings } = splitFindings(out.results, taggedItems(root));
+  const files = new Set(warnings.map((w) => w.file));
+  if (warnings.length) console.warn(`manni: warning: migration mode: ${warnings.length} tag-field finding(s) on ${files.size} untagged item(s) (Phase 6 fills them)`);
+  for (const e of errors) console.error(`  ${e.file}:${e.line ?? 1}: ${e.message}  [${e.schema}]`);
+  console.log(errors.length ? `manni: ${errors.length} error(s)` : `manni: ok (${out.summary.files} files)`);
+  return errors.length ? 1 : 0;
 }
 
 async function main() {
@@ -95,7 +109,7 @@ See migration/import-report.md`);
       const pairs = findDuplicates(root);
       const out = path.join(root, args[0] ?? 'migration/entity-duplicates.md');
       fs.mkdirSync(path.dirname(out), { recursive: true });
-      fs.writeFileSync(out, renderDuplicates(pairs, new Date().toLocaleDateString('en-CA', { timeZone: loadConfig(root).timezone ?? 'UTC' })));
+      fs.writeFileSync(out, mdHeader('kb entity-duplicates') + renderDuplicates(pairs));
       console.log(`entity-duplicates: ${pairs.length} candidate pair(s) → ${path.relative(root, out)}`);
       return 0;
     }
@@ -103,7 +117,7 @@ See migration/import-report.md`);
       const out = path.join(root, args[0] ?? 'migration/content-digest.md');
       const r = digest(root);
       fs.mkdirSync(path.dirname(out), { recursive: true });
-      fs.writeFileSync(out, r.text);
+      fs.writeFileSync(out, mdHeader('kb digest') + r.text);
       console.log(`digest: ${r.count} items → ${path.relative(root, out)}`);
       return 0;
     }
@@ -115,9 +129,17 @@ See migration/import-report.md`);
       const r = await runFetch(root, { only, limit: Number(opt('--limit') ?? Infinity), retryFailed: args.includes('--retry-failed'), recheck: args.includes('--recheck-paywall') });
       const rep = fetchReport(root);
       const out = path.join(root, 'migration', 'fetch-report.md');
-      fs.writeFileSync(out, rep.text);
+      fs.writeFileSync(out, mdHeader('kb fetch') + rep.text);
       console.log(`${cmd}: ${r.planned} item(s) ${JSON.stringify(r.counts)}; ${rep.failed} extraction-failed, ${rep.missing} missing capture → ${path.relative(root, out)}`);
       return rep.missing ? 1 : 0;
+    }
+    case 'regen': {
+      // §0.9: regenerate deterministic generated files; --check fails if any committed one would change.
+      const check = args.includes('--check');
+      const changed = regen(root, { check });
+      if (check) return report('regen --check', changed.map((f) => `${f}: out of date (run kb regen and commit)`));
+      console.log(`regen: ${changed.length} file(s) updated${changed.length ? `: ${changed.join(', ')}` : ''}`);
+      return 0;
     }
     case 'rename-term': console.log(`rename-term: ${renameTerm(root, args[0], args[1])} file(s) changed`); return 0;
     case 'validate': {
@@ -131,7 +153,7 @@ See migration/import-report.md`);
     }
     default:
       if (STUBS.includes(cmd)) { console.error(`kb ${cmd}: not implemented yet (later phase)`); return 2; }
-      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify import-notion fetch fetch-bookmark entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
+      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify import-notion fetch fetch-bookmark regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
       return cmd ? 2 : 0;
   }
 }
