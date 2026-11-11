@@ -1,6 +1,6 @@
 {
   "name": "knowledge-engine-ai-kit",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Skills, CLI, schemas and site template for a Markdown knowledge base.",
   "type": "module",
   "license": "MIT",
