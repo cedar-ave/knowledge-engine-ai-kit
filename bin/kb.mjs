@@ -6,7 +6,10 @@ import { createRequire } from 'node:module';
 import { itemId, canonicalUrl, fileName } from '../lib/ids.mjs';
 import { genVocab, checkVocab, termUsage, vocabWarnings, refValue } from '../lib/vocab.mjs';
 import { checkRefs, findEntity, loadConfig } from '../lib/entities.mjs';
-import { checkIds, checkSegments, checkCapturedText } from '../lib/checks.mjs';
+import { checkIds, checkSegments, checkCapturedText, checkLeftovers } from '../lib/checks.mjs';
+import { runTag } from '../lib/tag.mjs';
+import { buildCatalog, runIndex, MODE_NAMES } from '../lib/search.mjs';
+import { runEval, renderReport } from '../lib/eval.mjs';
 import { renameTerm } from '../lib/rename.mjs';
 import { digest } from '../lib/digest.mjs';
 import { classify, pickType } from '../lib/classify.mjs';
@@ -21,7 +24,7 @@ const rootIdx = argv.indexOf('--root');
 const root = path.resolve(rootIdx >= 0 ? argv.splice(rootIdx, 2)[1] : process.cwd());
 const [cmd, ...args] = argv;
 
-const STUBS = ['capture', 'tag', 'apply-patch', 'index', 'build-site'];
+const STUBS = ['capture', 'apply-patch', 'build-site'];
 
 function report(name, errs) {
   if (errs.length) {
@@ -141,11 +144,45 @@ See migration/import-report.md`);
       console.log(`regen: ${changed.length} file(s) updated${changed.length ? `: ${changed.join(', ')}` : ''}`);
       return 0;
     }
+    case 'tag': {
+      // Phase 6: one headless Sonnet call per item; resumable (items with a provenance record are skipped unless --redo).
+      const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+      const files = opt('--files')?.split(',').filter(Boolean);
+      const r = await runTag(root, { batch: Number(opt('--batch') ?? 15), redo: args.includes('--redo'), files, parallel: Number(opt('--parallel') ?? 1),
+        onItem: (x) => console.log(`${x.status}	${x.file}${x.review?.length ? `	${x.review.join('; ')}` : ''}${x.errors ? `	${x.errors.slice(0, 3).join(' | ')}` : ''}`) });
+      const changed = regen(root);
+      const n = (s) => r.results.filter((x) => x.status === s).length;
+      const cost = r.results.reduce((a, x) => a + (x.cost ?? 0), 0);
+      console.log(`tag: ${r.planned} item(s): ${n('ok')} ok, ${n('review')} queued for review, ${n('failed')} failed; ${r.remaining} untagged left; ~US$${cost.toFixed(2)} at list price (subscription)${changed.length ? `; regenerated ${changed.join(', ')}` : ''}`);
+      return n('failed') ? 1 : 0;
+    }
+    case 'build-catalog': console.log(`build-catalog: ${buildCatalog(root)} items → catalog.jsonl`); return 0;
+    case 'index': {
+      // Phase 7: catalog + qmd collections/contexts + update + embed. --index <name> picks a qmd named index.
+      const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+      await runIndex(root, { index: opt('--index'), embed: !args.includes('--no-embed'), log: (m) => console.log(`index: ${m}`) });
+      return 0;
+    }
+    case 'eval': {
+      // Phase 9: recall@k of golden must items per retrieval mode; writes evals/report.md (or --out).
+      const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+      const modes = (opt('--modes') ?? MODE_NAMES.join(',')).split(',');
+      const res = await runEval(root, { modes, k: Number(opt('--k') ?? 10), selfTest: args.includes('--self-test'), index: opt('--index'), log: args.includes('--verbose') ? console.log : () => {} });
+      const out = path.resolve(root, opt('--out') ?? 'evals/report.md');
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, renderReport(res, { label: opt('--label') ?? '' }));
+      if (opt('--json')) fs.writeFileSync(path.resolve(root, opt('--json')), JSON.stringify(res, null, 1));
+      for (const [m, x] of Object.entries(res.modes)) console.log(`eval: ${m}: recall@${res.k} ${(x.recall * 100).toFixed(0)}%, ${(x.msMean / 1000).toFixed(1)} s/query (model load ${(x.warmupMs / 1000).toFixed(1)} s)`);
+      if (res.selfTest) console.log(`eval: self-test ${(res.selfTest.top5 * 100).toFixed(0)}% top-5 of ${res.selfTest.questions}`);
+      if (res.missing.length) console.log(`eval: left out (no item file): ${res.missing.join(', ')}`);
+      console.log(`eval: report → ${path.relative(root, out)}`);
+      return 0;
+    }
     case 'rename-term': console.log(`rename-term: ${renameTerm(root, args[0], args[1])} file(s) changed`); return 0;
     case 'validate': {
       let bad = 0;
       genVocab(root);
-      for (const [n, f] of [['check-vocab', checkVocab], ['__manni', null], ['check-refs', checkRefs], ['check-ids', checkIds], ['check-segments', checkSegments], ['check-captured-text', checkCapturedText]]) {
+      for (const [n, f] of [['check-vocab', checkVocab], ['__manni', null], ['check-refs', checkRefs], ['check-ids', checkIds], ['check-segments', checkSegments], ['check-captured-text', checkCapturedText], ['check-leftovers', checkLeftovers]]) {
         if (!f) { console.log('manni meta validate'); bad |= runManni(); } else bad |= report(n, f(root));
         if (n === 'check-vocab') warn(n, vocabWarnings(root));
       }
@@ -153,7 +190,7 @@ See migration/import-report.md`);
     }
     default:
       if (STUBS.includes(cmd)) { console.error(`kb ${cmd}: not implemented yet (later phase)`); return 2; }
-      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify import-notion fetch fetch-bookmark regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
+      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify import-notion fetch fetch-bookmark tag build-catalog index eval regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
       return cmd ? 2 : 0;
   }
 }

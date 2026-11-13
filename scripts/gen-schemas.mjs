@@ -140,71 +140,90 @@ const entity = {
   additionalProperties: true,
 };
 
+const nul = (t) => ({ anyOf: [t, { type: 'null' }] });
+
+// Phase 6 contract (prompts/tag-item.md): one model call per item returns every judgment, including the type.
+// Flat keys; a script applies them. Controlled values are checked against the vocabulary by the script.
+const tagSegment = {
+  type: 'object',
+  additionalProperties: false,
+  required: ['title', 'knowledge-type'],
+  oneOf: [{ required: ['insert-before'] }, { required: ['heading'] }],
+  properties: {
+    'insert-before': { type: 'string', minLength: 4 },
+    heading: str,
+    title: str,
+    start: segment.properties.start,
+    'knowledge-type': str,
+    genre: nul(str),
+    concepts: strList(),
+    organizations: strList(),
+    tools: strList(),
+    'first-hand': nul({ type: 'boolean' }),
+  },
+};
+
 const tag = {
   $schema: D,
-  $id: 'kb:tag-output:1.0.0',
+  $id: 'kb:tag-output:2.0.0',
   title: 'Model output contract for tagging one item (a patch, never a whole file)',
   type: 'object',
   additionalProperties: false,
-  required: ['patch', 'confidence'],
+  required: ['type', 'description', 'concepts', 'knowledge-types', 'lifecycle-stages', 'sample-questions', 'confidence'],
   properties: {
-    patch: {
-      type: 'object',
-      additionalProperties: false,
-      description: 'Frontmatter keys to set. Agents never set best or note.',
-      properties: {
-        title: str,
-        'title-devised': { type: 'boolean' },
-        description: str,
-        concepts: strList(1, 6),
-        genre: strList(),
-        'knowledge-types': strList(1),
-        'example-of': strList(1, 5),
-        'lifecycle-stages': strList(),
-        'org-contexts': strList(),
-        'doc-types': strList(),
-        tools: strList(0, 8),
-        organizations: strList(),
-        authors: strList(),
-        hosts: strList(),
-        guests: strList(),
-        'first-hand': { type: 'boolean' },
-        'sample-questions': { type: 'array', minItems: 1, maxItems: 5, items: str },
-        segments: { type: 'array', items: segment },
-        published: date,
-      },
-    },
-    body: {
-      type: 'object',
-      additionalProperties: false,
-      description: 'Body sections inserted by script. Captured text is never included.',
-      properties: {
-        summary: str,
-        'key-takeaways': { type: 'array', items: str },
-        'tools-mentioned': { type: 'array', items: str },
-        'articles-resources': { type: 'array', items: str },
-        'open-questions': { type: 'array', items: str },
-      },
-    },
+    type: { enum: [...SOURCES, ...PIECES] },
+    title: nul(str),
+    'title-devised': nul({ type: 'boolean' }),
+    description: str,
+    concepts: strList(1, 6),
+    genre: strList(),
+    'knowledge-types': strList(1),
+    'example-of': strList(0, 5),
+    'lifecycle-stages': strList(),
+    'org-contexts': strList(),
+    'doc-types': strList(),
+    organizations: strList(),
+    tools: strList(0, 8),
+    authors: strList(),
+    hosts: strList(),
+    guests: strList(),
+    'first-hand': nul({ type: 'boolean' }),
+    published: nul(date),
+    'sample-questions': { type: 'array', minItems: 1, maxItems: 5, items: str },
+    segments: { type: 'array', items: tagSegment },
+    summary: nul(str),
+    'key-takeaways': nul({ type: 'array', items: str }),
+    'tools-mentioned': nul({ type: 'array', items: str }),
     'new-entities': {
       type: 'array',
       items: {
         type: 'object',
-        required: ['kind', 'slug', 'title'],
-        properties: { kind: { enum: ENTITY_TYPES }, slug: str, title: str, description: str, 'alt-labels': strList() },
+        additionalProperties: false,
+        required: ['kind', 'slug', 'title', 'description'],
+        properties: {
+          kind: { enum: ['tool', 'person', 'organization'] },
+          slug: { type: 'string', pattern: '^[a-z0-9]+(-[a-z0-9]+)*$' },
+          title: str,
+          description: str,
+          resource: nul({ type: 'string', format: 'uri' }),
+          'alt-labels': strList(),
+        },
       },
     },
-    'new-terms': {
+    'candidate-terms': {
       type: 'array',
       items: {
         type: 'object',
+        additionalProperties: false,
         required: ['scheme', 'label', 'description'],
-        properties: { scheme: { enum: ['topics', 'docs-artifacts', 'frameworks'] }, label: str, description: str, broader: strList() },
+        properties: { scheme: { enum: ['topics', 'docs-artifacts', 'frameworks'] }, label: str, description: str, 'scope-note': nul(str), broader: strList() },
       },
     },
     confidence: { type: 'object', additionalProperties: { type: 'number', minimum: 0, maximum: 1 } },
+    notes: { type: 'string' },
   },
 };
+
 
 fs.mkdirSync('schema', { recursive: true });
 for (const [n, s] of Object.entries({ 'kb-item': item, 'kb-term': term, 'kb-entity': entity, 'tag-output': tag })) {
