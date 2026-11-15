@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv } from '../lib/search.mjs';
+import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv, catalogMatch, fuseRRF, openRetriever } from '../lib/search.mjs';
 import { renderReport } from '../lib/eval.mjs';
 
 function copySamples() {
@@ -59,4 +59,36 @@ test('eval report: recall table, per-question rows, misses and recommendation', 
   assert.match(md, /Recommendation: \*\*query\*\*/);
   assert.match(md, /`web:b` B title/);
   assert.match(md, /`web:gone`/);
+});
+
+test('retriever: asks qmd for k * 10 results and dedupes to k items', async () => {
+  const root = copySamples();
+  const files = loadCatalog(root).map((c) => `qmd://kb-items/${path.posix.basename(c.file)}`);
+  const calls = [];
+  const store = { search: async (o) => { calls.push(o.limit); return files.flatMap((f) => [{ file: f }, { file: f }]); }, close: async () => {} };
+  const r = await openRetriever(root, { store });
+  const { ids } = await r.retrieve('query', 'anything', 2);
+  assert.deepEqual(calls, [20]);
+  assert.equal(ids.length, Math.min(2, files.length));
+  assert.equal(new Set(ids).size, ids.length);
+});
+
+test('fast mode: catalog facet matches ranked by matching terms, fused with qmd by RRF', async () => {
+  const cat = [
+    { id: 'a', concepts: ['Content drift'] },
+    { id: 'b', concepts: ['Content drift'], 'doc-types': ['api-reference-docs'] },
+    { id: 'c', genre: ['opinion'] },
+    { id: 'd', organizations: ['elastic'] },
+  ];
+  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs', 'x:elastic']), ['b', 'a', 'd']);
+  assert.deepEqual(catalogMatch(cat, []), []);
+  // b is second in both lists, so it beats a and c, which each top only one.
+  assert.deepEqual(fuseRRF([['a', 'b'], ['c', 'b']]), ['b', 'a', 'c']);
+
+  const root = copySamples();
+  const store = { search: async () => [], close: async () => {} };
+  const r = await openRetriever(root, { store });
+  const { ids } = await r.retrieve('fast', 'How do I stop stale docs?', 3);
+  const drift = loadCatalog(root).filter((c) => c.concepts?.includes('Content drift')).map((c) => c.id);
+  assert.deepEqual(ids, drift.slice(0, 3), 'catalog matches on Content drift with no qmd hits');
 });
