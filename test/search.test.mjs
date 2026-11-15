@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv, catalogMatch, fuseRRF, openRetriever } from '../lib/search.mjs';
+import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv, catalogMatch, catalogWeight, fuseRRF, openRetriever } from '../lib/search.mjs';
 import { renderReport, explainMisses } from '../lib/eval.mjs';
 
 function copySamples() {
@@ -75,15 +75,16 @@ test('retriever: asks qmd for k * 10 results and dedupes to k items', async () =
   assert.equal(new Set(ids).size, ids.length);
 });
 
-test('fast mode: catalog facet matches ranked by matching terms, fused with qmd by RRF', async () => {
+test('fast mode: catalog facet matches ranked by summed term rarity, fused with qmd by RRF', async () => {
   const cat = [
     { id: 'a', concepts: ['Content drift'] },
     { id: 'b', concepts: ['Content drift'], 'doc-types': ['api-reference-docs'] },
     { id: 'c', genre: ['opinion'], 'knowledge-types': ['how-to'], 'lifecycle-stages': ['maintain'] },
     { id: 'd', organizations: ['elastic'] },
   ];
-  // genre, knowledge-types and lifecycle-stages are not matched.
-  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs', 'x:elastic', 'genre:opinion', 'knowledge-types:how-to', 'lifecycle-stages:maintain']), ['b', 'a', 'd']);
+  // genre, knowledge-types and lifecycle-stages are not matched. N = 4: b scores log 2 + log 4,
+  // d's one rare term (log 4) beats a's shared one (log 2).
+  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs', 'x:elastic', 'genre:opinion', 'knowledge-types:how-to', 'lifecycle-stages:maintain']), ['b', 'd', 'a']);
   assert.deepEqual(catalogMatch(cat, []), []);
   // A term shared by maxShare items is skipped; the list is cut to top.
   assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'x:elastic'], { maxShare: 2 }), ['d']);
@@ -95,6 +96,13 @@ test('fast mode: catalog facet matches ranked by matching terms, fused with qmd 
   assert.deepEqual(fuseRRF([['a', 'b'], ['c', 'b']]), ['b', 'a', 'c']);
   // A half-weight list loses ties to the full-weight one.
   assert.deepEqual(fuseRRF([['a'], ['c']], 60, [1, 0.5]), ['a', 'c']);
+  // At weight 1 a catalog-only first place (1/61) beats qmd's tenth (1/70); at 0.5 it cannot.
+  const qmd10 = Array.from({ length: 10 }, (_, i) => `q${i}`);
+  assert.ok(fuseRRF([qmd10, ['c']], 60, [1, 1]).slice(0, 10).includes('c'));
+  assert.ok(!fuseRRF([qmd10, ['c']], 60, [1, 0.5]).slice(0, 10).includes('c'));
+  assert.equal(catalogWeight({}), 1.5);
+  assert.equal(catalogWeight({ KB_CATALOG_WEIGHT: '0.5' }), 0.5);
+  assert.equal(catalogWeight({ KB_CATALOG_WEIGHT: 'x' }), 1.5);
 
   const root = copySamples();
   const store = { search: async () => [], close: async () => {} };
