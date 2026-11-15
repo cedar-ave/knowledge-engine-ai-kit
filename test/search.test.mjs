@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv, catalogMatch, fuseRRF, openRetriever } from '../lib/search.mjs';
-import { renderReport } from '../lib/eval.mjs';
+import { renderReport, explainMisses } from '../lib/eval.mjs';
 
 function copySamples() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-search-'));
@@ -42,6 +42,8 @@ test('thesaurus expansion matches alt-labels and adds narrower terms', () => {
   assert.ok(x.phrases.includes('Content drift') && x.phrases.includes('docs drift'));
   const y = expandQuestion(root, 'What is content accuracy?');
   assert.ok(y.phrases.includes('Content drift'), 'narrower term of Content accuracy');
+  const z = expandQuestion(root, 'Is our content drifting?');
+  assert.ok(z.terms.includes('topics:Content drift'), 'stems: drifting matches drift');
 });
 
 test('result ids: qmd paths map to item ids in rank order without duplicates', () => {
@@ -104,4 +106,30 @@ test('fast mode: catalog facet matches ranked by matching terms, fused with qmd 
   try {
     assert.deepEqual((await r.retrieve('fast', 'How do I stop stale docs?', 3)).ids, [], 'KB_NO_CATALOG=1 turns the catalog off');
   } finally { delete process.env.KB_NO_CATALOG; }
+});
+
+test('eval --explain: matched terms, facets of missed items and ranks in the qmd and catalog lists', () => {
+  const catalog = [{ id: 'a', concepts: ['Content drift'], 'doc-types': ['api-reference-docs'] }, { id: 'b' }];
+  const e = explainMisses({ terms: ['topics:Content drift'], qmd: ['x', 'b'], catalog: ['a'] }, ['a', 'b'], catalog);
+  assert.deepEqual(e.terms, ['topics:Content drift']);
+  assert.deepEqual(e.items[0], { id: 'a', concepts: ['Content drift'], 'example-of': [], 'doc-types': ['api-reference-docs'], qmdRank: null, catalogRank: 1 });
+  assert.equal(e.items[1].qmdRank, 2);
+  const q = { id: 'q01', question: 'Q?', gap: false, must: 2, hits: 0, recall: 0, ms: 1, missed: ['a', 'b'], top: [], explain: { ...e, qmdSize: 2, catalogSize: 1 } };
+  const md = renderReport({ k: 10, items: 2, tagged: 0, missing: [], modes: { fast: { recall: 0, msMean: 1, msMedian: 1, warmupMs: 1, questions: [q] } }, title: { a: 'A title' } });
+  assert.match(md, /## Explain: fast questions scoring 0/);
+  assert.match(md, /Matched terms: topics:Content drift/);
+  assert.match(md, /concepts: Content drift; example-of: —; doc-types: api-reference-docs/);
+  assert.match(md, /qmd rank: not in 2; catalog rank: 1 of 1/);
+  assert.match(md, /qmd rank: 2 of 2; catalog rank: not in 1/);
+});
+
+test('fast mode returns explain data; query mode does not', async () => {
+  const root = copySamples();
+  const store = { search: async () => [], close: async () => {} };
+  const r = await openRetriever(root, { store });
+  const f = await r.retrieve('fast', 'How do I stop stale docs?', 3);
+  assert.ok(f.explain.terms.includes('topics:Content drift'));
+  assert.deepEqual(f.explain.qmd, []);
+  assert.ok(f.explain.catalog.length >= f.ids.length);
+  assert.equal((await r.retrieve('query', 'anything', 3)).explain, undefined);
 });

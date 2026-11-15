@@ -174,9 +174,10 @@ See migration/import-report.md`);
     }
     case 'eval': {
       // Phase 9: recall@k of golden must items per retrieval mode; writes evals/report.md (or --out).
+      // --explain adds, for questions scoring 0, matched terms and each missed item's facets and list ranks.
       const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
       const modes = (opt('--modes') ?? MODE_NAMES.join(',')).split(',');
-      const res = await runEval(root, { modes, k: Number(opt('--k') ?? 10), selfTest: args.includes('--self-test'), index: opt('--index'), log: args.includes('--verbose') ? console.log : () => {} });
+      const res = await runEval(root, { modes, k: Number(opt('--k') ?? 10), selfTest: args.includes('--self-test'), explain: args.includes('--explain'), index: opt('--index'), log: args.includes('--verbose') ? console.log : () => {} });
       const out = path.resolve(root, opt('--out') ?? 'evals/report.md');
       fs.mkdirSync(path.dirname(out), { recursive: true });
       fs.writeFileSync(out, renderReport(res, { label: opt('--label') ?? '' }));
