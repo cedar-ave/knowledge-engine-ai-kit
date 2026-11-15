@@ -8,12 +8,14 @@ import { readMd } from '../lib/md.mjs';
 import { checkSegments, checkCapturedText } from '../lib/checks.mjs';
 import { checkRefs } from '../lib/entities.mjs';
 import { taggedItems } from '../lib/migration.mjs';
+import { genVocab } from '../lib/vocab.mjs';
 
 const ITEM = 'items/yt-keeping-docs-honest-at-scale-96f61ed0.md';
 
 function copySamples() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'kb-tag-'));
   fs.cpSync('samples', dir, { recursive: true });
+  genVocab(dir); // vocab.compact.md is generated and git-ignored, so absent in a fresh checkout
   return dir;
 }
 
