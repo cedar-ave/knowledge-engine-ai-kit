@@ -8,7 +8,7 @@ import { genVocab, checkVocab, termUsage, vocabWarnings, refValue } from '../lib
 import { checkRefs, findEntity, loadConfig } from '../lib/entities.mjs';
 import { checkIds, checkSegments, checkCapturedText, checkLeftovers } from '../lib/checks.mjs';
 import { runTag } from '../lib/tag.mjs';
-import { buildCatalog, runIndex, MODE_NAMES } from '../lib/search.mjs';
+import { buildCatalog, runIndex, missingQmdEnv, MODE_NAMES } from '../lib/search.mjs';
 import { runEval, renderReport } from '../lib/eval.mjs';
 import { renameTerm } from '../lib/rename.mjs';
 import { digest } from '../lib/digest.mjs';
@@ -23,6 +23,15 @@ const argv = process.argv.slice(2);
 const rootIdx = argv.indexOf('--root');
 const root = path.resolve(rootIdx >= 0 ? argv.splice(rootIdx, 2)[1] : process.cwd());
 const [cmd, ...args] = argv;
+
+// qmd commands: re-run with kb.config.yaml qmd-env in the starting environment (see missingQmdEnv).
+if (['index', 'eval'].includes(cmd)) {
+  const env = missingQmdEnv(root);
+  if (Object.keys(env).length) {
+    const r = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], { stdio: 'inherit', env: { ...process.env, ...env } });
+    process.exit(r.status ?? 1);
+  }
+}
 
 const STUBS = ['capture', 'apply-patch', 'build-site'];
 

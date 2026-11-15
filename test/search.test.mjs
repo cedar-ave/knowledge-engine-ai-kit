@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths } from '../lib/search.mjs';
+import { buildCatalog, loadCatalog, expandQuestion, resultIds, indexPaths, missingQmdEnv } from '../lib/search.mjs';
 import { renderReport } from '../lib/eval.mjs';
 
 function copySamples() {
@@ -22,6 +22,17 @@ test('build-catalog: one line per item, facets and segment slugs, no body or has
   assert.deepEqual(ep.segments.map((s) => s.slug), ['introduction', 'the-drift-gate']);
   assert.ok(ep.concepts.includes('Content drift') && !('captured-text-sha256' in ep));
   assert.ok(!fs.readFileSync(path.join(root, 'catalog.jsonl'), 'utf8').includes('## Summary'));
+});
+
+test('qmd-env: only variables not already set, as strings', () => {
+  const root = copySamples();
+  fs.writeFileSync(path.join(root, 'kb.config.yaml'), 'qmd-env:\n  KB_TEST_DEVICE: 1\n  KB_TEST_SET: x\n');
+  process.env.KB_TEST_SET = 'already';
+  try {
+    assert.deepEqual(missingQmdEnv(root), { KB_TEST_DEVICE: '1' });
+  } finally {
+    delete process.env.KB_TEST_SET;
+  }
 });
 
 test('thesaurus expansion matches alt-labels and adds narrower terms', () => {
