@@ -77,13 +77,22 @@ test('fast mode: catalog facet matches ranked by matching terms, fused with qmd 
   const cat = [
     { id: 'a', concepts: ['Content drift'] },
     { id: 'b', concepts: ['Content drift'], 'doc-types': ['api-reference-docs'] },
-    { id: 'c', genre: ['opinion'] },
+    { id: 'c', genre: ['opinion'], 'knowledge-types': ['how-to'], 'lifecycle-stages': ['maintain'] },
     { id: 'd', organizations: ['elastic'] },
   ];
-  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs', 'x:elastic']), ['b', 'a', 'd']);
+  // genre, knowledge-types and lifecycle-stages are not matched.
+  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs', 'x:elastic', 'genre:opinion', 'knowledge-types:how-to', 'lifecycle-stages:maintain']), ['b', 'a', 'd']);
   assert.deepEqual(catalogMatch(cat, []), []);
+  // A term shared by maxShare items is skipped; the list is cut to top.
+  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'x:elastic'], { maxShare: 2 }), ['d']);
+  assert.deepEqual(catalogMatch(cat, ['topics:Content drift', 'doc-types:api-reference-docs'], { top: 1 }), ['b']);
+  const many = Array.from({ length: 30 }, (_, i) => ({ id: `m${i}`, concepts: ['Common'] }));
+  assert.deepEqual(catalogMatch([...many, ...cat], ['c:Common', 'c:Content drift']), ['a', 'b']);
+  assert.equal(catalogMatch(many.slice(0, 29), ['c:Common']).length, 20);
   // b is second in both lists, so it beats a and c, which each top only one.
   assert.deepEqual(fuseRRF([['a', 'b'], ['c', 'b']]), ['b', 'a', 'c']);
+  // A half-weight list loses ties to the full-weight one.
+  assert.deepEqual(fuseRRF([['a'], ['c']], 60, [1, 0.5]), ['a', 'c']);
 
   const root = copySamples();
   const store = { search: async () => [], close: async () => {} };
@@ -91,4 +100,8 @@ test('fast mode: catalog facet matches ranked by matching terms, fused with qmd 
   const { ids } = await r.retrieve('fast', 'How do I stop stale docs?', 3);
   const drift = loadCatalog(root).filter((c) => c.concepts?.includes('Content drift')).map((c) => c.id);
   assert.deepEqual(ids, drift.slice(0, 3), 'catalog matches on Content drift with no qmd hits');
+  process.env.KB_NO_CATALOG = '1';
+  try {
+    assert.deepEqual((await r.retrieve('fast', 'How do I stop stale docs?', 3)).ids, [], 'KB_NO_CATALOG=1 turns the catalog off');
+  } finally { delete process.env.KB_NO_CATALOG; }
 });
