@@ -315,6 +315,45 @@
         {
           "type": "array",
           "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tool",
+              "said"
+            ],
+            "properties": {
+              "tool": {
+                "type": "string",
+                "minLength": 1
+              },
+              "url": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "said": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "articles-resources": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
             "type": "string",
             "minLength": 1
           }
@@ -421,6 +460,27 @@
               "minLength": 1
             },
             "uniqueItems": true
+          }
+        }
+      }
+    },
+    "suggested-alt-labels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "term",
+          "wording"
+        ],
+        "properties": {
+          "term": {
+            "type": "string",
+            "minLength": 1
+          },
+          "wording": {
+            "type": "string",
+            "minLength": 1
           }
         }
       }

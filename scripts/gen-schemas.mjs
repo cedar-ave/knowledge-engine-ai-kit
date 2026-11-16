@@ -193,7 +193,9 @@ const tag = {
     segments: { type: 'array', items: tagSegment },
     summary: nul(str),
     'key-takeaways': nul({ type: 'array', items: str }),
-    'tools-mentioned': nul({ type: 'array', items: str }),
+    // url: only a URL that appears in the item's text; the apply script prefers the tool file's resource.
+    'tools-mentioned': nul({ type: 'array', items: { type: 'object', additionalProperties: false, required: ['tool', 'said'], properties: { tool: str, url: nul(str), said: str } } }),
+    'articles-resources': nul({ type: 'array', items: str }),
     'new-entities': {
       type: 'array',
       items: {
@@ -218,6 +220,11 @@ const tag = {
         required: ['scheme', 'label', 'description'],
         properties: { scheme: { enum: ['topics', 'docs-artifacts', 'frameworks'] }, label: str, description: str, 'scope-note': nul(str), broader: strList() },
       },
+    },
+    // Optional: the item's own wording for a term it is assigned. Logged for review, never added to the vocabulary.
+    'suggested-alt-labels': {
+      type: 'array',
+      items: { type: 'object', additionalProperties: false, required: ['term', 'wording'], properties: { term: str, wording: str } },
     },
     confidence: { type: 'object', additionalProperties: { type: 'number', minimum: 0, maximum: 1 } },
     notes: { type: 'string' },

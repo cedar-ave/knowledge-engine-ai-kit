@@ -2,9 +2,10 @@
 import path from 'node:path';
 import fs from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { itemId, canonicalUrl, fileName } from '../lib/ids.mjs';
-import { genVocab, checkVocab, termUsage, vocabWarnings, refValue } from '../lib/vocab.mjs';
+import { genVocab, checkVocab, termUsage, vocabWarnings, refValue, newCandidateLines } from '../lib/vocab.mjs';
 import { checkRefs, findEntity, loadConfig } from '../lib/entities.mjs';
 import { checkIds, checkSegments, checkCapturedText, checkLeftovers } from '../lib/checks.mjs';
 import { runTag } from '../lib/tag.mjs';
@@ -18,6 +19,10 @@ import { findDuplicates, renderDuplicates } from '../lib/dupes.mjs';
 import { splitFindings, taggedItems } from '../lib/migration.mjs';
 import { mdHeader, regen } from '../lib/generated.mjs';
 import { runFetch, fetchReport } from '../lib/fetch.mjs';
+import { findItem, parseLinks, addBatch, ingestBrowser, lineFor, finishAdd } from '../lib/add.mjs';
+import { research, parseResearchArgs } from '../lib/research.mjs';
+import { checkLinks, renderLinks } from '../lib/links.mjs';
+import { toolsMissingLinks, fillToolLinks } from '../lib/toollinks.mjs';
 
 const argv = process.argv.slice(2);
 const rootIdx = argv.indexOf('--root');
@@ -25,7 +30,7 @@ const root = path.resolve(rootIdx >= 0 ? argv.splice(rootIdx, 2)[1] : process.cw
 const [cmd, ...args] = argv;
 
 // qmd commands: re-run with kb.config.yaml qmd-env in the starting environment (see missingQmdEnv).
-if (['index', 'eval'].includes(cmd)) {
+if (['index', 'eval', 'research'].includes(cmd)) {
   const env = missingQmdEnv(root);
   if (Object.keys(env).length) {
     const r = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], { stdio: 'inherit', env: { ...process.env, ...env } });
@@ -90,6 +95,20 @@ async function main() {
     case 'check-vocab': { const code = report(cmd, checkVocab(root)); warn(cmd, vocabWarnings(root)); return code; }
     case 'term-usage': {
       // Candidates with item counts (literary warrant); --all lists every term.
+      // --new-only [--since <rev>] (kb-add): only candidates created or brought to two items since <rev> (default HEAD~1, plus uncommitted changes).
+      if (args.includes('--new-only')) {
+        const i = args.indexOf('--since');
+        const since = i >= 0 ? args[i + 1] : 'HEAD~1';
+        const git = (a) => spawnSync('git', a, { cwd: root, encoding: 'utf8' });
+        const diff = git(['diff', '--name-status', '--no-renames', since, '--', 'concepts', 'items']);
+        if (diff.status !== 0) { console.error(`term-usage: git diff against ${since} failed: ${diff.stderr.trim()}`); return 1; }
+        const untracked = git(['ls-files', '--others', '--exclude-standard', '--', 'concepts', 'items']).stdout.split('\n').filter(Boolean);
+        const rows = diff.stdout.split('\n').filter(Boolean).map((l) => l.split('\t'));
+        const added = new Set([...rows.filter(([s]) => s === 'A').map(([, f]) => f), ...untracked].filter((f) => f.startsWith('concepts/')));
+        const changed = new Set([...rows.filter(([s]) => s !== 'D').map(([, f]) => f), ...untracked].filter((f) => f.startsWith('items/')));
+        for (const l of newCandidateLines(termUsage(root), { added, changed })) console.log(l);
+        return 0;
+      }
       const rows = termUsage(root).filter((u) => args.includes('--all') || u.term.status === 'candidate')
         .sort((a, b) => b.items.length - a.items.length || a.term.scheme.localeCompare(b.term.scheme) || refValue(a.term).localeCompare(refValue(b.term)));
       for (const u of rows) console.log(`${u.items.length}	${u.term.status}	${u.term.scheme}	${refValue(u.term)}`);
@@ -188,6 +207,74 @@ See migration/import-report.md`);
       console.log(`eval: report → ${path.relative(root, out)}`);
       return 0;
     }
+    case 'tools-missing-links': {
+      // Tool files without a resource (items listing the tool, file).
+      const rows = toolsMissingLinks(root);
+      for (const r of rows) console.log(`${r.items}\t${r.slug}\t${r.title}\t${r.file}`);
+      console.error(`tools-missing-links: ${rows.length} tool file(s) without a resource`);
+      return 0;
+    }
+    case 'fill-tool-links': {
+      // Link every "Tools mentioned" line whose tool file has a resource.
+      const r = fillToolLinks(root);
+      console.log(`fill-tool-links: ${r.lines} line(s) linked in ${r.files} item(s)`);
+      return 0;
+    }
+    case 'cursor-skills': {
+      // Cursor loads Agent Skills from .cursor/skills/ (not from Claude plugins): copy the kit's skills there (git-ignored; run on install).
+      const src = fileURLToPath(new URL('../skills', import.meta.url));
+      const dest = path.join(root, '.cursor', 'skills');
+      const names = fs.readdirSync(src).filter((n) => fs.existsSync(path.join(src, n, 'SKILL.md')));
+      for (const n of names) { fs.rmSync(path.join(dest, n), { recursive: true, force: true }); fs.cpSync(path.join(src, n), path.join(dest, n), { recursive: true }); }
+      console.log(`cursor-skills: ${names.join(', ')} → ${path.relative(root, dest)}`);
+      return 0;
+    }
+    case 'check-links': {
+      // kb-maintain, on demand: dead or moved item resources → evals/dead-links.md.
+      const r = await checkLinks(root, { log: args.includes('--verbose') ? console.log : () => {} });
+      const out = path.join(root, 'evals', 'dead-links.md');
+      fs.mkdirSync(path.dirname(out), { recursive: true });
+      fs.writeFileSync(out, mdHeader('kb check-links') + renderLinks(root, r));
+      console.log(`check-links: ${r.checked} checked, ${r.dead.length} dead, ${r.moved.length} moved → ${path.relative(root, out)}`);
+      return 0;
+    }
+    case 'find': {
+      // kb-add step 1: the existing item for an id or URL (exit 1 when none).
+      const r = findItem(root, args[0]);
+      console.log(r.file ? `${r.id}	${r.file}	${r.type}	${r.title}` : `${r.id}	not found`);
+      return r.file ? 0 : 1;
+    }
+    case 'add':
+    case 'add-batch': {
+      // Phase 10 kb-add: web and YouTube links, each tagged in its own headless call; then validate, commit, index.
+      const links = parseLinks(args.filter((a) => !['--no-commit', '--no-index'].includes(a)));
+      if (!links.length) { console.error('Usage: kb add-batch <url> [--note "…"] [--bookmark] [--type t] [--best] [--shared-in id] …'); return 2; }
+      const r = await addBatch(root, links, { commit: !args.includes('--no-commit'), index: !args.includes('--no-index') });
+      const cost = r.results.reduce((a, x) => a + (x.cost ?? 0), 0);
+      console.log(`add-batch: ${r.results.filter((x) => x.status === 'added').length}/${links.length} added; validate ${r.validate ?? '-'}, commit ${r.commit ?? '-'}, index ${r.index ?? '-'}; ~US$${cost.toFixed(2)} at list price (subscription)`);
+      return r.validate === 'failed' || r.results.some((x) => x.status === 'error') ? 1 : 0;
+    }
+    case 'ingest-browser': {
+      // Slack/LinkedIn: a browser download in migration/inbox/ → verbatim item (--refresh appends new replies).
+      const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+      const r = await ingestBrowser(root, path.resolve(root, args[0]), { note: opt('--note'), refresh: args.includes('--refresh') });
+      console.log(r.status === 'added' || r.status === 'exists' ? lineFor({ url: '', ...r }) : `${r.status}: ${r.file}${r.appended ? ` (+${r.appended} message(s))` : ''}`);
+      for (const n of r.notes ?? []) if (r.status !== 'added') console.log(`  ${n}`);
+      if (r.links?.length) console.log(`Shared links (ask which to save):\n${r.links.map((u) => `  ${u}`).join('\n')}`);
+      if (['added', 'refreshed'].includes(r.status) && !args.includes('--no-finish')) {
+        const f = finishAdd(root, [r], { commit: !args.includes('--no-commit'), index: !args.includes('--no-index') });
+        console.log(`ingest-browser: validate ${f.validate}, commit ${f.commit ?? '-'}, index ${f.index ?? '-'}`);
+        return f.validate === 'ok' ? 0 : 1;
+      }
+      return 0;
+    }
+    case 'research': {
+      // Phase 10 kb-research: fast mode (catalog weight 1.5) + facet filters → JSON for the skill.
+      const { question, opts } = parseResearchArgs(args);
+      if (!question) { console.error('Usage: kb research "<question>" [--k 12] [--knowledge-types a,b] [--type t] [--tools s] [--genre g] [--event e] [--example-of x] [--doc-types d] [--org-contexts o] [--organizations o] [--lifecycle-stages l] [--first-hand] [--best] [--sort published|best] [--strict]'); return 2; }
+      console.log(JSON.stringify(await research(root, question, opts), null, 1));
+      return 0;
+    }
     case 'rename-term': console.log(`rename-term: ${renameTerm(root, args[0], args[1])} file(s) changed`); return 0;
     case 'validate': {
       let bad = 0;
@@ -200,7 +287,7 @@ See migration/import-report.md`);
     }
     default:
       if (STUBS.includes(cmd)) { console.error(`kb ${cmd}: not implemented yet (later phase)`); return 2; }
-      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify import-notion fetch fetch-bookmark tag build-catalog index eval regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
+      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify find add-batch ingest-browser research check-links cursor-skills tools-missing-links fill-tool-links import-notion fetch fetch-bookmark tag build-catalog index eval regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
       return cmd ? 2 : 0;
   }
 }

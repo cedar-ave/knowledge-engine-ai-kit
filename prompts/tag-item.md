@@ -27,9 +27,10 @@ Return **only** a JSON object (no prose, no code fence) with exactly these keys:
      "start": "00:12:40", "knowledge-type": "case-study",
      "concepts": ["Content drift"], "organizations": ["acme"], "first-hand": true}
   ],
-  "summary": null, "key-takeaways": null, "tools-mentioned": null,
+  "summary": null, "key-takeaways": null, "tools-mentioned": null, "articles-resources": null,
   "new-entities": [{"kind": "tool", "slug": "vale", "title": "Vale", "description": "Prose linter with custom style rules.", "resource": null, "alt-labels": []}],
   "candidate-terms": [],
+  "suggested-alt-labels": [{"term": "Content drift", "wording": "doc rot"}],
   "confidence": {"type": 0.9, "concepts": 0.9, "knowledge-types": 0.8, "segments": 0.7},
   "notes": ""
 }
@@ -55,9 +56,10 @@ Return **only** a JSON object (no prose, no code fence) with exactly these keys:
   - adds a new heading: `"insert-before": "<text>"`, where `<text>` is an exact substring at the **start** of a captured-text line (a timestamp like `[00:12:40]` or the first words of a paragraph, 10–60 characters, unique in the text). The heading is inserted above that line.
   
   Plus `title` (short, specific), `knowledge-type` (one notation), optional `start` (`HH:MM:SS`, audio and video only, from the line's timestamp), and optional `genre`, `concepts`, `organizations`, `tools`, `first-hand`. When the existing headings already divide the text well, reuse them all.
-- **`summary`**, **`key-takeaways`**, **`tools-mentioned`**: always `null` in backfill (existing sections are kept). When the input says `mode: new`, write them through the takeaway lens: `summary` 2–4 sentences; `key-takeaways` 3–7 bullet strings, most important first, own inference starting with "My inference:"; `tools-mentioned` strings like `**Tool** ([link](url)): what was said`, or `[]`.
-- **`new-entities`**: only for people, tools and organizations that matter to the item and are **not** in *Known entities*. `kind` is `tool`, `person` or `organization`. `slug` is kebab-case of the name. `description` is one factual sentence from the item. `resource` only if the item gives the URL, else `null`.
+- **`summary`**, **`key-takeaways`**, **`tools-mentioned`**, **`articles-resources`**: always `null` in backfill (existing sections are kept). When the input says `mode: new`, write them through the takeaway lens: `summary` 2–4 sentences; `key-takeaways` 3–7 bullet strings, most important first, own inference starting with "My inference:"; `tools-mentioned` objects `{"tool": "<slug from tools>", "url": null, "said": "what was said about it"}`, or `[]`. Give `url` only when that exact URL appears in the input text; **never a URL from memory**. The script links each tool from its tool file and otherwise from that URL; `articles-resources` strings like `[Title](url): why it was shared`, only links that appear in the input, or `[]`. For a bookmark, `key-takeaways` may be `[]`.
+- **`new-entities`**: only for people, tools and organizations that matter to the item and are **not** in *Known entities*. `kind` is `tool`, `person` or `organization`. `slug` is kebab-case of the name. `description` is one factual sentence from the item. `resource` only if the URL appears in the input text (never from memory), else `null`.
 - **`candidate-terms`**: a needed topic, framework or docs artifact that the vocabulary lacks: `{"scheme": "topics" | "frameworks" | "docs-artifacts", "label": "...", "description": "...", "scope-note": "...", "broader": []}`. Never put a label that is not in the vocabulary into `concepts` or `example-of`; the script adds candidate terms there. Prefer an existing term; propose a candidate only when nothing fits.
+- **`suggested-alt-labels`**: when the item names a term you assigned (in `concepts`, `example-of`, or a segment's `concepts`) with different wording, list that wording as it appears in the item: `{"term": "<assigned label>", "wording": "doc rot"}`. Only wording that is not already the label or one of its alt-labels in the vocabulary, and that means the same thing (not a narrower or related idea). Usually `[]`. These are logged for review; they never change the vocabulary.
 - **`confidence`**: 0–1 for `type`, `concepts`, `knowledge-types`, and `segments` when you return segments. Be honest; below 0.7 sends the item to human review.
 - **`notes`**: one short line for the reviewer, or `""`.
 
