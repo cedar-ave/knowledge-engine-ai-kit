@@ -12,7 +12,7 @@ Requires Node 24 or later.
 ## Commands
 
 - Add: `find`, `add-batch` (web and YouTube; one headless tag call per link, then validate, commit, index), `ingest-browser` (Slack and LinkedIn downloads), `classify`, `fetch`, `fetch-bookmark`, `tag`.
-- Research: `research` (fast retrieval with facet filters, JSON out), `index`, `build-catalog`, `eval`.
+- Research: `research` (fast retrieval with facet filters, JSON out), `mcp` (stdio MCP server for Claude desktop with `kb_research` and `kb_get`), `index`, `build-catalog`, `eval`.
 - Upkeep: `validate`, `regen`, `gen-vocab`, `check-vocab`, `term-usage`, `rename-term`, `check-refs`, `check-ids`, `check-segments`, `check-captured-text`, `find-entity`, `entity-duplicates`, `check-links`, `cursor-skills`.
 
 Pass `--root <dir>` to run against another folder.
@@ -20,6 +20,23 @@ Pass `--root <dir>` to run against another folder.
 ## Skills
 
 The Claude plugin in `skills/`: `kb-add`, `kb-research`, `kb-maintain`. Enable it in the knowledge-base repo's `.claude/settings.json`. For Cursor, `npx kb cursor-skills` copies them to `.cursor/skills/`.
+
+## Claude desktop
+
+`kb mcp` serves the knowledge base to Claude desktop over stdio: `kb_research` (a question and the same facet flags as `kb research`, as arguments) and `kb_get` (an item ID, optionally one segment slug). Register it in `claude_desktop_config.json` with absolute paths, since Claude desktop does not set a working directory:
+
+```json
+{
+  "mcpServers": {
+    "kb": {
+      "command": "/absolute/path/to/node",
+      "args": ["/absolute/path/to/kb-repo/node_modules/knowledge-engine-ai-kit/bin/kb.mjs", "mcp", "--root", "/absolute/path/to/kb-repo"]
+    }
+  }
+}
+```
+
+Upload `skills/kb-research` as a zip in Claude desktop (Settings → Capabilities → Skills) so answers follow the same grouping. Adding items stays in Claude Code.
 
 ## Development
 

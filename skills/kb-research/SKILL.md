@@ -33,11 +33,13 @@ It uses fast mode (thesaurus-expanded keyword and vector search fused with catal
 
 Each result has `title`, `type`, `published`, `description`, `file` (with `#segment-slug` when the match is in a segment), `link` (the original; YouTube links carry `&t=<seconds>` for the segment), `segment`, `knowledge-types`, `first-hand`, `best`, `note`, `example-of`, `how-built` (case studies about the same organization, for examples), and `chunk` (the matched text).
 
+**In Claude desktop** (no shell), call the `kb_research` MCP tool instead: `question`, plus the flags above as arguments (`"knowledge-types": ["case-study"]`, `"first-hand": true`, `"sort": "published"`, `"k": 12`). It returns the same JSON.
+
 Run a second query only when the first is thin (fewer than about 4 relevant results) or the question has two distinct parts. Do not run one query per group.
 
 ## 3. Check, sparingly
 
-Judge relevance from `description`, `segment` and `chunk`. Open an item file only to verify a borderline match, and then read only its frontmatter and the matched segment (`grep -n "^### " <file>` to find it). Never open whole transcripts.
+Judge relevance from `description`, `segment` and `chunk`. Open an item file only to verify a borderline match, and then read only its frontmatter and the matched segment (`grep -n "^### " <file>` to find it). Never open whole transcripts. In Claude desktop, use `kb_get` with the result's `id` and the `#segment` slug instead of opening the file.
 
 ## 4. Answer
 

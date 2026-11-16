@@ -23,6 +23,7 @@ import { findItem, parseLinks, addBatch, ingestBrowser, lineFor, finishAdd } fro
 import { research, parseResearchArgs } from '../lib/research.mjs';
 import { checkLinks, renderLinks } from '../lib/links.mjs';
 import { toolsMissingLinks, fillToolLinks } from '../lib/toollinks.mjs';
+import { serve } from '../lib/mcp.mjs';
 
 const argv = process.argv.slice(2);
 const rootIdx = argv.indexOf('--root');
@@ -30,7 +31,7 @@ const root = path.resolve(rootIdx >= 0 ? argv.splice(rootIdx, 2)[1] : process.cw
 const [cmd, ...args] = argv;
 
 // qmd commands: re-run with kb.config.yaml qmd-env in the starting environment (see missingQmdEnv).
-if (['index', 'eval', 'research'].includes(cmd)) {
+if (['index', 'eval', 'research', 'mcp'].includes(cmd)) {
   const env = missingQmdEnv(root);
   if (Object.keys(env).length) {
     const r = spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)], { stdio: 'inherit', env: { ...process.env, ...env } });
@@ -275,6 +276,12 @@ See migration/import-report.md`);
       console.log(JSON.stringify(await research(root, question, opts), null, 1));
       return 0;
     }
+    case 'mcp': {
+      // Phase 10 Claude desktop: stdio MCP server with kb_research and kb_get.
+      const { version } = JSON.parse(fs.readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+      await serve(root, { version });
+      return 0;
+    }
     case 'rename-term': console.log(`rename-term: ${renameTerm(root, args[0], args[1])} file(s) changed`); return 0;
     case 'validate': {
       let bad = 0;
@@ -287,7 +294,7 @@ See migration/import-report.md`);
     }
     default:
       if (STUBS.includes(cmd)) { console.error(`kb ${cmd}: not implemented yet (later phase)`); return 2; }
-      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify find add-batch ingest-browser research check-links cursor-skills tools-missing-links fill-tool-links import-notion fetch fetch-bookmark tag build-catalog index eval regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
+      console.error(`Usage: kb <command> [--root dir]\nCommands: id canonical slug classify find add-batch ingest-browser research mcp check-links cursor-skills tools-missing-links fill-tool-links import-notion fetch fetch-bookmark tag build-catalog index eval regen entity-duplicates digest gen-vocab check-vocab term-usage check-refs check-ids check-segments check-captured-text find-entity rename-term validate\nLater: ${STUBS.join(' ')}`);
       return cmd ? 2 : 0;
   }
 }
