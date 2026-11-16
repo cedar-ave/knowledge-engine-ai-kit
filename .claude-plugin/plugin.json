@@ -1,6 +1,6 @@
 {
   "name": "knowledge-engine-ai-kit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Skills for adding to, researching and maintaining a Markdown knowledge base.",
   "author": { "name": "cedar-ave" },
   "license": "MIT",

@@ -56,7 +56,7 @@ If the owner says yes to one: set `status: approved` in its file under `concepts
 ## 3. Slack and LinkedIn: browser, one at a time
 
 1. `npx kb find <url>`. If it exists and the owner did not say "refresh", stop and reply with the file.
-2. Load the browser skill for the browser you have (Claude in Chrome or the built-in browser) and open the link in a new tab. If you see a sign-in page, ask the owner to sign in; never type credentials.
+2. Load the Claude in Chrome skill and open the link in a new tab. Never use Playwright or the built-in browser; if the `mcp__claude-in-chrome__*` tools are not available, stop and tell the owner to restart with `kb`. If you see a sign-in page, ask the owner to sign in; never type credentials.
 3. Follow the source's reference file for expanding the thread and the extraction snippet:
    - Slack: `references/slack.md`
    - LinkedIn: `references/linkedin.md` (one post at a time, only at the owner's request, never bulk)

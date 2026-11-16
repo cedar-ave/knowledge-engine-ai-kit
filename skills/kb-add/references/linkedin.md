@@ -1,5 +1,7 @@
 # LinkedIn posts and articles
 
+**Capture must use Claude in Chrome (`mcp__claude-in-chrome__*`), which acts in the owner's own signed-in Chrome. Never use Playwright or any other browser for this. If the Claude in Chrome tools are not available, stop and tell the owner to restart with `kb`.**
+
 **One post at a time, only when the owner asks for that post. Never bulk, never browse feeds or profiles.**
 
 `linkedin.com/feed/update/urn:li:activity:<id>` and `linkedin.com/posts/…-activity-<id>-…` are posts. `linkedin.com/pulse/…` is an article: try `npx kb add-batch <url>` first (public articles extract without the browser); use the browser only if it comes back `extraction-failed` or summary-only.

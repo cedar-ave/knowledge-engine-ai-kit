@@ -1,5 +1,7 @@
 # Slack threads
 
+**Capture must use Claude in Chrome (`mcp__claude-in-chrome__*`), which acts in the owner's own signed-in Chrome. Never use Playwright or any other browser for this. If the Claude in Chrome tools are not available, stop and tell the owner to restart with `kb`.**
+
 Slack hides messages older than 30 days on free workspaces, so save Slack links first. The workspace must be listed under `slack-workspaces` in `kb.config.yaml`; for `app.slack.com/client/T…/C…` links the team ID maps to the subdomain there. If it is missing, ask the owner to add it.
 
 ## Expand
