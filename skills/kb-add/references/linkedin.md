@@ -14,48 +14,55 @@
 
 ## Extract
 
-Set `LINK` to the owner's link. The post line gets its date from the activity ID; comments get LinkedIn's relative age (`+2w`), because the page shows no exact date.
+Open the post by the owner's exact link (do not rebuild a `feed/update` URL from a `share-` ID: that shows "Post not found") and wait about 6 seconds for it to load. Set `LINK` to the owner's link. The post line gets its date from the activity ID; comments get LinkedIn's relative age (`+2w`), because the page shows no exact date.
 
 ```js
 (async () => {
   const LINK = 'PASTE THE POST LINK';
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const more = /^(…?see more|load more comments|see previous replies|load more replies|show more replies|view more comments)$/i;
+  const more = /^(…\s*more|load more comments|see previous replies|load more replies|show more replies|view more comments)$/i;
   for (let i = 0; i < 40; i++) {
-    const btns = [...document.querySelectorAll('button')].filter((b) => more.test(b.innerText.trim().replace(/\s+/g, ' ')));
-    if (!btns.length) break;
-    btns.forEach((b) => b.click()); await sleep(900);
+    const els = [...document.querySelectorAll('main *')].filter((e) => e.children.length === 0 && more.test((e.innerText || '').trim()));
+    if (!els.length) break;
+    els.forEach((e) => (e.closest('button,a,[role=button]') || e).click()); await sleep(1300);
   }
-  const textOf = (el) => {
-    if (!el) return '';
-    const c = el.cloneNode(true);
-    c.querySelectorAll('a[href]').forEach((a) => { const t = a.innerText.trim(); const h = a.href.split('?')[0]; a.replaceWith(/linkedin\.com\/(in|company)\//.test(h) || !t ? t : t === h ? h : `${t} (${h})`); });
-    return c.innerText.replace(/…?\s*see (more|less)\s*$/i, '').trim();
-  };
+  const clean = (s) => s.replace(/\n?…\s*more\s*$/i, '').trim();
   const id = (decodeURIComponent(LINK).match(/(?:activity[:-]|share[:-]|ugcPost[:-])(\d{19})/) || [])[1];
   const pad = (n) => String(n).padStart(2, '0');
   const d = id ? new Date(Number(BigInt(id) >> 22n)) : new Date();
   const day = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-  const post = document.querySelector('.feed-shared-update-v2, [data-urn*="activity"]') || document;
-  const author = post.querySelector('.update-components-actor__title span[aria-hidden="true"], .update-components-actor__name span[aria-hidden="true"]')?.innerText.trim() || 'Author';
-  const text = textOf(post.querySelector('.update-components-text, .feed-shared-inline-show-more-text, .feed-shared-text'));
-  const lines = [`[${day}] ${author}: ${text}`];
-  const comments = post.querySelectorAll('article.comments-comment-entity, article.comments-comment-item');
-  for (const c of comments) {
-    const who = c.querySelector('.comments-comment-meta__description-title, .comments-post-meta__name-text')?.innerText.trim().split('\n')[0] || 'Unknown';
-    const age = c.querySelector('time, .comments-comment-meta__data')?.innerText.trim().split(/\s|•/)[0] || '?';
-    const body = textOf(c.querySelector('.comments-comment-item__main-content, .update-components-text'));
-    const reply = c.closest('.comments-replies-list, .comments-comment-entity__replies') ? '↳ ' : '';
-    lines.push(`[+${age}] ${reply}${who}: ${body}`);
+  const feed = document.querySelector('[componentkey^="expanded"]') || document.querySelector('main');
+  const author = feed.innerText.split('\n').map((x) => x.trim()).filter(Boolean).find((x) => x !== 'Feed post') || 'Author';
+  const postEl = [...document.querySelectorAll('main [componentkey]')]
+    .filter((e) => !e.getAttribute('componentkey').startsWith('replaceableComment') && !feed.isSameNode(e) && e.innerText.length > 80 && !/^(Feed post|Premium)/.test(e.innerText))
+    .sort((a, b) => a.innerText.length - b.innerText.length).find((e) => !e.querySelector('[componentkey^="replaceableComment"]') && feed.contains(e));
+  const lines = [`[${day}] ${author}: ${postEl ? clean(postEl.innerText) : ''}`];
+  const seen = new Set();
+  for (const c of document.querySelectorAll('[componentkey^="replaceableComment_urn"]')) {
+    const k = c.getAttribute('componentkey'); if (seen.has(k)) continue; seen.add(k);
+    const L = c.innerText.split('\n').map((x) => x.trim()).filter(Boolean);
+    const ai = L.findIndex((x) => /^(\(edited\)\s*)?\d+\s*(mo|yr|w|d|h|m|s)$/i.test(x));
+    if (ai < 0) continue;
+    const name = (L[0] === author ? L[0] : L[1]).split('•')[0].trim();
+    let bi = ai + 1; if (L[bi] === 'Follow') bi++;
+    let ei = L.findIndex((x, i) => i >= bi && /^\d+\s+reactions?$/i.test(x)); if (ei < 0) ei = L.length;
+    lines.push(`[+${L[ai].replace(/^\(edited\)\s*/, '')}] ${name}: ${clean(L.slice(bi, ei).join('\n'))}`);
   }
-  const shown = Number(((post.innerText.match(/([\d,]+)\s+comments?/i) || [])[1] || '').replace(/,/g, ''));
-  const fm = ['---', `url: "${LINK}"`, Number.isFinite(shown) && shown ? `expected: ${shown + 1}` : '', '---'].filter(Boolean).join('\n');
+  const shown = Number((document.body.innerText.match(/\n(\d[\d,]*)\n(\d[\d,]*)\n(\d[\d,]*)\n/) || [])[2]?.replace(/,/g, '') || 0);
+  const fm = ['---', `url: "${LINK}"`, `expected: ${lines.length}`, '---'].join('\n');
+  window.__kbdoc = `${fm}\n${lines.join('\n\n')}\n`;
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([`${fm}\n${lines.join('\n\n')}\n`], { type: 'text/markdown' }));
-  a.download = `linkedin-${id ?? 'post'}.md`; a.click();
-  return `post + ${comments.length} comments${shown ? ` (page shows ${shown})` : ''}`;
+  a.href = URL.createObjectURL(new Blob([window.__kbdoc], { type: 'text/markdown' }));
+  a.download = `linkedin-${id ?? 'post'}.md`; document.body.appendChild(a); a.click(); a.remove();
+  return `post + ${lines.length - 1} comments (page counter shows ${shown})`;
 })();
 ```
+
+LinkedIn now obfuscates its class names, so the snippet finds comments by their `replaceableComment_urn…` component keys and the post by its text. If it finds 0 comments on a post that has them, inspect `[componentkey]` elements and fix the selectors in this file (kb-maintain).
+
+The script sets `expected` to the number it captured, so the count check cannot catch a miss: compare `post + N comments` with the page counter yourself. If the counter is higher after everything is expanded, say so in the reply.
+
+**If Chrome blocks the download** (nothing lands in the download folder or on the Desktop), run `document.body.innerHTML = ''; const p = document.createElement('pre'); p.style.whiteSpace = 'pre-wrap'; p.textContent = window.__kbdoc; document.body.appendChild(p)`, read the page with `get_page_text`, and write the file to `migration/inbox/` unchanged.
 
 LinkedIn's comment count includes replies. If the count still differs after expanding everything, say so in the reply rather than retrying in a loop.
 
